@@ -1,0 +1,11 @@
+<launch>
+  <param name="opcua_client_node" value="/opcua/opcua_client" />
+  <group ns="plant">
+      <node pkg="robonomics_game_plant" name="mill" type="plant_node.py">
+        <param name="opcua_server_namespace" value="ns=4;s=/Airalab/Plant_mill" />
+        <param name="unload_time" value="2000" />
+        <param name="handle_time" value="2000" />
+        <param name="timeout" value="5000" />
+      </node>
+  </group>
+</launch>
