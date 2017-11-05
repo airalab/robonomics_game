@@ -1,0 +1,12 @@
+<launch>
+  <group ns="warehouse">
+    <group ns="raw"> <!-- ns for all raw material storages -->
+      <node pkg="robonomics_game_warehouse" name="yellow" type="warehouse_node.py">
+        <param name="size" value="[3, 4]" />
+        <param name="offset" value="[0, 0]" />
+        <param name="warehouse" value="raw" />
+        <param name="content" value="yellow" />
+      </node>
+    </group>
+  </group>
+</launch>
