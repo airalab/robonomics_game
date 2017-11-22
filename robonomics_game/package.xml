@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>robonomics_game</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>The robonomics_game package</description>
   <maintainer email="a.khssnv@gmail.com">Alisher A. Khassanov</maintainer>
-  <license>GPLv3</license>
+  <license>BSD3</license>
   <url type="repository">https://github.com/airalab/robonomics_game</url>
   <url type="video">https://youtu.be/sFSC-9TZYOY</url> -->
   <author email="a.khssnv@gmail.com">Alisher A. Khassanov</author>
