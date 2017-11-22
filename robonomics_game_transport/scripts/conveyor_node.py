@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+from robonomics_game_transport.srv import Conveyor, ConveyorResponse
 
 from opcua_client import OpcuaClient
 
@@ -19,6 +20,8 @@ class Conveyor:
         self.opcua.write(self.opcua_ns + '/Settings/Tr_unload_time', 'uint16', tr_unload_time)
         self.opcua.write(self.opcua_ns + '/Settings/Tr_timeout', 'uint16', tr_timeout)
         self.opcua.write(self.opcua_ns + '/Settings/Tl_unload_time', 'uint16', tl_unload_time)
+        self.opcua.write(self.opcua_ns + '/Destination', 'bool', True) # to warehouse by default
+        rospy.Service('~destination', Conveyor, self.set_destination) # set items destination
         rospy.loginfo('Conveyor ready')
 
     def enable(self):
@@ -36,6 +39,15 @@ class Conveyor:
         else:
             rospy.logwarn('Can not disable conveyor')
         return response.success
+
+    def set_destination(self, request):
+        if request.destination.lower() == 'warehouse':
+            self.opcua.write(self.opcua_ns + '/Destination', 'bool', True) # True -> to warehouse
+        elif request.destination.lower() == 'garbage':
+            self.opcua.write(self.opcua_ns + '/Destination', 'bool', False) # False -> to garbage
+        else:
+            rospy.logwarn('Unknown destination request:' + request.destination)
+        return ConveyorResponse()
 
 
 if __name__ == '__main__':
