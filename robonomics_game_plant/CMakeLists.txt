@@ -13,6 +13,11 @@ add_action_files(
   Order.action
 )
 
+add_service_files(
+  FILES
+  Unload.srv
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs

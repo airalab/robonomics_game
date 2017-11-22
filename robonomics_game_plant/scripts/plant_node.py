@@ -7,6 +7,7 @@ import rospy
 import actionlib
 
 from robonomics_game_plant.msg import OrderAction, OrderFeedback, OrderResult
+from robonomics_game_plant.srv import Unload, UnloadResponse
 
 import ros_opcua_srvs.srv as ros_opcua
 
@@ -58,6 +59,9 @@ class Plant:
         self._state_updater_thread = threading.Thread(target=self._state_updater)
         self._state_updater_thread.daemon = True
         self._state_updater_thread.start()
+
+        # unload signal service
+        rospy.Service('~unload', Unload, self.unload)
 
     def plan_job(self, order):
         if self.state == -1:
@@ -137,6 +141,12 @@ class Plant:
         else:
             rospy.logwarn('Order run attempt after %d sec from the last run ingnored.'
                           'Minium run period: %d sec.' % (now - last, period))
+    def unload(self, request):
+        rospy.loginfo('Unloading...')
+        self._opcua_write(self._opcua_server_namespace + '/Unload', 'bool', True)
+        rospy.sleep(2)
+        self._opcua_write(self._opcua_server_namespace + '/Unload', 'bool', False)
+        return UnloadResponse()
 
     def _state_updater(self):
         ns = self._opcua_server_namespace
