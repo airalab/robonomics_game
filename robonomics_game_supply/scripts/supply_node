@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from robonomics_game_supply.nodes import supply_node
+
+if __name__ == '__main__':
+    supply_node()
