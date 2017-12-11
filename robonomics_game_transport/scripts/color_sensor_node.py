@@ -7,16 +7,15 @@ from opcua_client import OpcuaClient
 
 
 def code_to_color(code):  # eastern rainbow order color code
-    if code == 0:
-        color = ''
-    elif code == 3:
+    color = ''
+    if 1000 < code < 1600:
         color = 'yellow'
-    elif code == 4:
-        color = 'green'
-    elif code == 6:
-        color = 'blue'
-    elif code == 7:
+    elif 3500 < code < 3800:
         color = 'purple'
+    elif 5200 < code < 5500:
+        color = 'green'
+    elif 5600 < code < 5800:
+        color = 'blue'
     return color
 
 
@@ -39,15 +38,10 @@ if __name__ == '__main__':
     opcua_ns = opcua_server_namespace
 
     # advertise color
-    pub = rospy.Publisher('color', String, queue_size=1)
+    pub = rospy.Publisher('color', String, queue_size=2)
     rate = rospy.Rate(1)  # 1 Hz
     while not rospy.is_shutdown():
-        response = opcua.read(opcua_ns + '/Color')
-        if response.success:
-            color_code = getattr(response.data, response.data.type + '_d')
-            color = code_to_color(color_code)
-            pub.publish(color)
-        else:
-            rospy.logwarn('Color update unsuccessful')
-            continue
+        color_code = opcua.read_data(opcua_ns + '/DetectedColor')
+        color = code_to_color(color_code)
+        pub.publish(color)
         rate.sleep()
