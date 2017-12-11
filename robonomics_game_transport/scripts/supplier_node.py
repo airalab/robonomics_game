@@ -10,6 +10,7 @@ import re
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
+from std_msgs.msg import String
 
 from robonomics_game_warehouse.srv import Order as WarehouseOrder
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
@@ -34,6 +35,8 @@ class Supplier:
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
 
+        self.finish = rospy.Publisher('/finish', String, queue_size=10)
+
         self.current_gh = None
 
     def plan_job(self, job):
@@ -49,24 +52,27 @@ class Supplier:
 
     def start_job(self, job):
         result = TransportResult()
-        goal = job.get_goal()
-        color = goal.specification
-        item = self.warehouse.get(color)()
-        if item.available:
-            rospy.logwarn( 'Call stacker for job: ' + str([item.x, item.z, goal.address, 1]) )
-            self.current_gh = self.stacker.send_goal( StackerGoal([item.x, item.z, goal.address, 1]) )
-            while not rospy.is_shutdown(): # wait for stacker complete its job
-                if self.current_gh.get_goal_status() < 2: # actionlib_msgs/GoalStatus
-                    rospy.sleep(1)
-                else:
-                    break
-            result.act = 'Job %s %s' % ( str(job.get_goal_id()), GoalStatus.to_string(self.current_gh.get_terminal_state()) )
-            job.set_succeeded(result)
-        else:
-            result.act = 'Spec %s is not available' % color
-            job.set_aborted(result)
-            rospy.logdebug('Job aborted')
-        self.busy = False
+        try:
+            goal = job.get_goal()
+            color = goal.specification
+            item = self.warehouse.get(color)()
+            if item.available:
+                rospy.logwarn( 'Call stacker for job: ' + str([item.x, item.z, goal.address, 1]) )
+                self.current_gh = self.stacker.send_goal( StackerGoal([item.x, item.z, goal.address, 1]) )
+                while not rospy.is_shutdown(): # wait for stacker complete its job
+                    if self.current_gh.get_goal_status() < 2: # actionlib_msgs/GoalStatus
+                        rospy.sleep(1)
+                    else:
+                        break
+                result.act = 'Job %s %s' % ( str(job.get_goal_id()), GoalStatus.to_string(self.current_gh.get_terminal_state()) )
+                job.set_succeeded(result)
+            else:
+                result.act = 'Spec %s is not available' % color
+                job.set_aborted(result)
+                rospy.logdebug('Job aborted')
+        finally:
+            self.finish.publish(result.act)
+            self.busy = False
 
 if __name__ == '__main__':
     rospy.init_node('supplier')
