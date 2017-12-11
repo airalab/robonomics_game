@@ -46,6 +46,7 @@ class Plant:
         self._handle_time = handle_time
         self._timeout = timeout  # ms, proximity sensors and communication timeout
         ns = self._opcua_server_namespace  # tags nodeId from OPC-UA server model
+        
         try:
             self._opcua_write(ns + '/Settings/UnloadTime', 'uint16', unload_time)
             self._opcua_write(ns + '/Settings/HandleTime', 'uint16', handle_time)
@@ -107,7 +108,7 @@ class Plant:
                 return
             rospy.sleep(1)
         # Reset for a next rising edge
-        self._opcua_write(ns + '/Enable', 'bool', False)
+        self._opcua_write(self._opcua_server_namespace + '/Enable', 'bool', False)
         result = OrderResult()
         result.act = 'Order %s %s complete' % (str(order.get_goal_id()), str(order.get_goal()))
         order.set_succeeded(result)
@@ -162,7 +163,7 @@ class Plant:
                 self.state = -1
                 continue
             self.state = getattr(response.data, '%s_d' % response.data.type)
-            rospy.logwarn('State: ' + str(self.state))
+            rospy.logdebug('State: ' + str(self.state))
             if self.state not in range(0, 12):  # PLC state codes can be fromm 0 to 11
                 rospy.logwarn(
                     'Deprecated state code: %d, set state to undefined (-1)' % self.state)

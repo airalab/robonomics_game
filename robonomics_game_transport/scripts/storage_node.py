@@ -52,6 +52,7 @@ class Storage:
                 self.busy = True
                 job = self.jobs_queue.get_nowait()
                 self.start_job(job)
+            rospy.sleep(1)
 
     def start_job(self, job):
         result = TransportResult()
