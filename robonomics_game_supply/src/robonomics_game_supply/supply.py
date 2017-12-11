@@ -50,7 +50,7 @@ storage = {
 
 class Supply(SupplyChain):
     def __init__(self):
-        pass
+        rospy.init_node('supply_chain', anonymous=True)
         self.addr = 1
 
     def spin(self):
@@ -66,5 +66,5 @@ class Supply(SupplyChain):
     def task(self, objective):
         pass
 
-    def finalize(self, objective);
+    def finalize(self, objective):
         self.ask(10, 1, storage_market, storage[objective][self.addr], 1, 50) 

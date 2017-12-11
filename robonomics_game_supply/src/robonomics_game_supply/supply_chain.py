@@ -15,7 +15,9 @@ class SupplyChain:
         self.ask = rospy.ServiceProxy('market/gen_ask', AsksGenerator)
         self.bid = rospy.ServiceProxy('market/gen_bid', BidsGenerator)
 
-        rospy.Subscribe('/market/current', String, lambda msg: self.current_market = msg.data)
+        def set_current(msg):
+            self.current_market = msg.data
+        rospy.Subscribe('/market/current', String, set_current)
 
         def run(msg):
             self.prepare(msg.data)
