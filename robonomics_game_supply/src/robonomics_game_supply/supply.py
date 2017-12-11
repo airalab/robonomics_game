@@ -8,6 +8,9 @@ import rospy, json
 from .supply_chain import SupplyChain
 
 class Supply(SupplyChain):
+    def __init__(self):
+        pass
+
     def spin(self):
         '''
             Waiting for the new messages.

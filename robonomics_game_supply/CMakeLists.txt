@@ -9,7 +9,7 @@ find_package(catkin REQUIRED
 
 catkin_python_setup()
 
-generate_messages()
+#generate_messages()
 
 catkin_package()
 
