@@ -8,24 +8,29 @@ class SupplyChain:
     current_market = ""
 
     def __init__(self):
-        rospy.init_node('supply_chain', anonymous=True)
+        rospy.init_node('supply_chain', anonymous=True, log_level=rospy.DEBUG)
+        rospy.logdebug('Supply chain node starting...')
 
-        rospy.wait_for_service('market/gen_ask')
-        rospy.wait_for_service('market/gen_bid')
-        self.ask = rospy.ServiceProxy('market/gen_ask', AsksGenerator)
-        self.bid = rospy.ServiceProxy('market/gen_bid', BidsGenerator)
+        rospy.wait_for_service('/market/gen_asks')
+        rospy.wait_for_service('/market/gen_bids')
+        self.ask = rospy.ServiceProxy('/market/gen_asks', AsksGenerator)
+        self.bid = rospy.ServiceProxy('/market/gen_bids', BidsGenerator)
 
         def set_current(msg):
             self.current_market = msg.data
-        rospy.Subscribe('/market/current', String, set_current)
+        rospy.Subscriber('/market/current', String, set_current)
 
         def run(msg):
+            rospy.logdebug('SupplyChain.run, msg.data: ' + msg.data)
             self.prepare(msg.data)
             self.task(msg.data)
             self.finalize(msg.data)
             self.make_bids()
-        rospy.Subscribe('run', String, run)
+        rospy.Subscriber('run', String, run)
+
+        rospy.logdebug('Supply chain node started')
 
     def make_bids(self):
+        rospy.logdebug('Making bids...')
         self.bid(0, 1, self.current_market, 1, 50)
 

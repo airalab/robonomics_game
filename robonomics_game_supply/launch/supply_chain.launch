@@ -1,3 +1,7 @@
 <launch>
-  <node pkg="robonomics_game_supply" type="supply_node" name="supply_chain" output="screen" />
+  <group ns="plant3">
+    <node pkg="robonomics_game_supply" type="supply_node" name="supply_chain" output="screen">
+      <param name="plant_node" value="/plant/mill" />
+    </node>
+  </group>
 </launch>

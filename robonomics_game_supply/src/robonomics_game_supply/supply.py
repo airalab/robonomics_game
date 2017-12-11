@@ -3,9 +3,18 @@
 # Robonomics game supply chain.
 #
 
+from sys import version_info
+if version_info[0] <= 2:
+    from Queue import Queue
+else:
+    from queue import Queue
+import threading
 from std_msgs.msg import String
 import rospy, json
 from .supply_chain import SupplyChain
+from actionlib import ActionClient
+from actionlib_msgs.msg import GoalStatus
+from robonomics_game_plant.msg import OrderAction as PlantAction, OrderGoal as PlantGoal 
 
 supplier_market = ''
 storage_market = ''
@@ -48,12 +57,26 @@ storage = {
               , 'Qmd8NdbUKB7o99t4ooHTpE1daPGqzTBXeC42odMB536Cdy' ]
     }
 
+
 class Supply(SupplyChain):
+    busy = False
+    orders_queue = Queue()
+
     def __init__(self):
-        rospy.init_node('supply_chain', anonymous=True)
-        super.__init__(self)
+        SupplyChain.__init__(self)
 
         self.addr = 1
+
+        self.plant_node = rospy.get_param('~plant_node')
+        self.plant = ActionClient(self.plant_node, PlantAction)
+        self.plant.wait_for_server()
+        self.plant_gh = None
+
+        self._orders_proc_thread = threading.Thread(target=self._orders_proc)
+        self._orders_proc_thread.daemon = True
+        self._orders_proc_thread.start()
+
+        self.finish = rospy.Publisher('/finish', String, queue_size=10)
 
     def spin(self):
         '''
@@ -63,10 +86,32 @@ class Supply(SupplyChain):
         rospy.spin()
 
     def prepare(self, objective):
+        rospy.logdebug('Supply.prepare: ' + objective)
         self.ask(10, 1, supplier_market, supplier[objective][self.addr], 1, 50) 
 
     def task(self, objective):
-        pass
+        rospy.logdebug('Supply.task: ' + objective)
+        self.orders_queue.put(objective)
+
+    def _orders_proc(self):
+        while not rospy.is_shutdown():
+            if not self.orders_queue.empty() and not self.plant_gh:
+                order = self.orders_queue.get_nowait()
+                self.start_order(order)
+            rospy.sleep(1)
+
+    def start_order(self, order):
+        rospy.logdebug( 'New order: ' + order + ', to plant: ' + self.plant_node)
+        self.plant_gh = self.plant.send_goal( PlantGoal(specification=order) )
+        while not rospy.is_shutdown(): # wait until plant complete its job
+            if self.plant_gh.get_goal_status() < 2:
+                rospy.sleep(1)
+            else:
+                break
+        result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(self.plant_gh.get_terminal_state())
+        self.finish.publish(result)
+        self.plant_gh = None
 
     def finalize(self, objective):
+        rospy.logdebug('Supply.finalize: ' + objective)
         self.ask(10, 1, storage_market, storage[objective][self.addr], 1, 50) 
