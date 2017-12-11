@@ -64,6 +64,7 @@ class Plant:
         rospy.Service('~unload', Unload, self.unload)
 
     def plan_job(self, order):
+        rospy.logdebug('Got a new order')
         if self.state == -1:
             rospy.logwarn(
                 'Plant state undefined. Check ROS node to PLC connection.'
@@ -77,17 +78,21 @@ class Plant:
         else:
             raise ValueError('Plant state value: %s deprecated' % str(self.state))
         order.set_accepted()
-        orders_queue.put(order)
+        self.orders_queue.put(order)
 
     def _orders_proc(self):
         while not rospy.is_shutdown():
             if not self.orders_queue.empty() and self.state == 0:  # order in plan and plant off
                 self.start_job(self.orders_queue.get_nowait())
+                rospy.logdebug('Orders queue: ' + str(self.orders_queue.queue))
+            rospy.logdebug('Orders queue: ' + str(self.orders_queue.queue))
             rospy.sleep(1)
 
     def start_job(self, order):
         self.enable()  # enable plant to start the job, returns with (state != 0)
         state_prev = 0
+        rospy.sleep(2)
+        rospy.logdebug('Staring new job')
         while self.state is not 0:  # publish changing feedback while order in proc
             if self.state != state_prev:
                 feedback = OrderFeedback()
@@ -101,6 +106,8 @@ class Plant:
                 order.set_aborted(result)
                 return
             rospy.sleep(1)
+        # Reset for a next rising edge
+        self._opcua_write(ns + '/Enable', 'bool', False)
         result = OrderResult()
         result.act = 'Order %s %s complete' % (str(order.get_goal_id()), str(order.get_goal()))
         order.set_succeeded(result)
@@ -134,8 +141,6 @@ class Plant:
                         rospy.logerr('Plant enable timeout.')
                         return
                     time.sleep(1)
-                # Reset for a next rising edge
-                self._opcua_write(ns + '/Enable', 'bool', False)
             except rospy.ServiceException as e:
                 rospy.logerr('Exception raised while OPC-UA request: %s' % e)
         else:
@@ -157,6 +162,7 @@ class Plant:
                 self.state = -1
                 continue
             self.state = getattr(response.data, '%s_d' % response.data.type)
+            rospy.logwarn('State: ' + str(self.state))
             if self.state not in range(0, 12):  # PLC state codes can be fromm 0 to 11
                 rospy.logwarn(
                     'Deprecated state code: %d, set state to undefined (-1)' % self.state)
