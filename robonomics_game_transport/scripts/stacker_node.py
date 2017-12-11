@@ -6,14 +6,15 @@ import actionlib
 from stacker import Stacker
 
 if __name__ == '__main__':
-    rospy.init_node('stacker')
+    rospy.init_node('stacker', log_level=rospy.DEBUG)
     node_name = rospy.get_name()
+    rospy.logwarn('Node name: ' + node_name)
 
-    if not rospy.has_param('opcua_server_namespace'):
+    if not rospy.has_param('~opcua_server_namespace'):
         raise rospy.ROSInitException(
             'Parameter "opcua_server_namespace" must be specified in accordance with OPCU-UA'
             'Model. Example: /Airalab/Stacker_goods')
-    opcua_server_namespace = rospy.get_param('opcua_server_namespace')
+    opcua_server_namespace = rospy.get_param('~opcua_server_namespace')
     if 'ns=' not in opcua_server_namespace:  # use only string type nodeId
         raise rospy.ROSInitException(
             'Parameter "opcua_server_namespace" template: "ns=<int>;s=/<VendorName>/<ObjectName>"')

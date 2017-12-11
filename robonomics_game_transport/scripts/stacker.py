@@ -6,7 +6,7 @@ import rospy
 import actionlib
 
 from opcua_client import OpcuaClient
-from robonomics_game_transport import StackerAction, StackerFeedback, StackerResult
+from robonomics_game_transport.msg import StackerAction, StackerFeedback, StackerResult
 
 
 class Stacker:
@@ -37,13 +37,13 @@ class Stacker:
         self._jobs_proc_thread.start()
 
         # load parameters to opcua server
-        self.opcua.write(self.opcua_ns + '/Reverse' 'bool', self._reverse)
+        self.opcua.write(self.opcua_ns + '/Reverse', 'bool', self._reverse)
         self.opcua.write(self.opcua_ns + '/Timeout', 'uint16', timeout)
 
         # update state in separate thread
         self._state_updater_thread = threading.Thread(target=self._state_updater)
-        self._state_updater.daemon = True
-        self._state_updater.start()
+        self._state_updater_thread.daemon = True
+        self._state_updater_thread.start()
 
     def set_direction(self, direction):
         if direction in ['forward', 'fw']:
@@ -56,6 +56,7 @@ class Stacker:
             raise ValueError('Direction must be "forward", "fw"  or "backward", "bw"')
 
     def plan_job(self, job):
+        rospy.logdebug('New job recieved')
         if self.state == -1:
             rospy.logwarn(
                 'Stacker state undefined. Check ROS to PLC connection. Queueing jobs until connection establish')
@@ -75,15 +76,18 @@ class Stacker:
     def _jobs_proc(self):
         while not rospy.is_shutdown():
             if not self.jobs_queue.empty() and self.state == 2:  # 2 means waiting for a job
-                job = jobs_queue.get_nowait()
+                job = self.jobs_queue.get_nowait()
                 self.start_job(job)
+            rospy.logdebug('Current jobs queue: ' + str(self.jobs_queue.queue))
             rospy.sleep(1)
 
     def start_job(self, job):
         if not self.enabled or self.state == 0:  # 0 means disabled
             self.enable()
-        source = job.job[0:2]
-        destination = job.job[2:4]
+        rospy.logdebug('Starting new job: ' + str(job.get_goal().job))
+        rospy.logdebug('GoalHandler: %s, Goal: %s, Job: %s' % ( str(dir(job)), str( dir(job.get_goal()) ), str( dir(job.get_goal().job) ) ) )
+        source = job.get_goal().job[0:2]
+        destination = job.get_goal().job[2:4]
         result = StackerResult()
         move = self.move(source, destination)
         if not move:
@@ -106,15 +110,16 @@ class Stacker:
             rate.sleep()
         # reset for next rising edge start
         self.opcua.write(self.opcua_ns + '/Start', 'bool', False)
-        result.act = 'Job %s %s done' % s(str(job.get_goal_id()), str(job.get_goal()))
+        result.act = 'Job %s %s done' % (str(job.get_goal_id()), str(job.get_goal()))
         job.set_succeeded(result)
 
-    def move(source, destination):
+    def move(self, source, destination):
+        rospy.logdebug('Move from: ' + str(source) + ' to: ' + str(destination))
         success = True
         response = []
         response.append(self.opcua.write(self.opcua_ns + '/Point1X', 'uint16', source[0]))
         response.append(self.opcua.write(self.opcua_ns + '/Point1Z', 'uint16', source[1]))
-        response.append(self.opcua.write(self.opcua_ns + '/Point2X', 'uint16', destination[1]))
+        response.append(self.opcua.write(self.opcua_ns + '/Point2X', 'uint16', destination[0]))
         response.append(self.opcua.write(self.opcua_ns + '/Point2Z', 'uint16', destination[1]))
         response.append(self.opcua.write(self.opcua_ns + '/Start', 'bool', True))
         for r in response:
@@ -134,11 +139,14 @@ class Stacker:
     def _state_updater(self):
         while not rospy.is_shutdown():
             response = self.opcua.read(self.opcua_ns + '/State')
-            if not response.success:
+            rospy.logdebug('Got new state: ' + str(response.success))
+            if response.success:
+                self.state = getattr(response.data, response.data.type + '_d')
+            else:
                 rospy.logwarn('State update unsuccessful')
-            self.state = getattr(response.data, response.data.type + '_d')
+                self.state = -1
             if self.state not in range(0, 12):  # in accordance with PLC states that is from 0 to 11
                 rospy.logwarn(
                     'Reading deprecated state value: %d, setting state to undefined (-1)' % self.state)
                 self.state = -1
-            time.sleep(1)
+            rospy.sleep(1)
