@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="robonomics_game_supply_chain" type="supply_node" name="supply_chain" output="screen">
+</launch>
