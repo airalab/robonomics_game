@@ -36,14 +36,14 @@ def handle_order(request):
 def handle_fill_all(request):
     size = wh.get_size()
     for cell_pos in [(x, z) for x in range(1, size[0] + 1) for z in range(1, size[1] + 1)]:
-        wh.occupy_cell([cell_pos[0] + warehouse_offset[0], cell_pos[1] + warehouse_offset[1]])
+        wh.occupy_cell([ cell_pos[0], cell_pos[1] ])
     return FillAllResponse()
 
 
 def handle_empty_all(request):
     size = wh.get_size()
     for cell_pos in [(x, z) for x in range(1, size[0] + 1) for z in range(1, size[1] + 1)]:
-        wh.free_cell([cell_pos[0] + warehouse_offset[0], cell_pos[1] + warehouse_offset[1]])
+        wh.free_cell([ cell_pos[0], cell_pos[1] ])
     return EmptyAllResponse()
 
 

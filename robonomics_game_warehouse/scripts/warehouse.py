@@ -8,7 +8,7 @@ class Warehouse:
             raise TypeError('Warehouse size type must be a list [length, height]')
         self.size = warehouse_size
         self.capacity = self.size[0] * self.size[1]
-        self.state = [[None for _ in range(self.size[0] + 1)] for _ in range(self.size[1] + 1)]
+        self.state = [[None for _ in range(self.size[1])] for _ in range(self.size[0])]
 
     def get_size(self):
         return self.size
