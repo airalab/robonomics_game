@@ -27,7 +27,7 @@ class OpcuaClient:
             rospy.logerr('Check OPC-UA client, server connection or server model')
         finally:
             if not response.success:
-                rospy.logwarn('No response to request: %s' % request)
+                rospy.logwarn('No response to write request: %s' % request)
             return response
 
     def read(self, nodeId):
@@ -44,5 +44,15 @@ class OpcuaClient:
             rospy.logerr('Check OPC-UA client, server connection or server model')
         finally:
             if not response.success:
-                rospy.logwarn('No response to request: %s' % request)
+                rospy.logwarn('No response to read request: %s' % request)
             return response # take data: getattr(response.data, '%s_d'%response.data.type)
+
+    def get_data(self, response):
+        if response.success:
+            return getattr(response.data, response.data.type + '_d')
+        else:
+            return None
+
+    def read_data(self, nodeId):
+        resp = self.read(nodeId)
+        return self.get_data(resp)
