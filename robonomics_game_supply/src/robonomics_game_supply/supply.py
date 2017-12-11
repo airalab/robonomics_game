@@ -51,6 +51,8 @@ storage = {
 class Supply(SupplyChain):
     def __init__(self):
         rospy.init_node('supply_chain', anonymous=True)
+        super.__init__(self)
+
         self.addr = 1
 
     def spin(self):
