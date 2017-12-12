@@ -22,6 +22,7 @@ def code_to_color(code):  # eastern rainbow order color code
 if __name__ == '__main__':
     rospy.init_node('sensor')
 
+    opcua_endpoint = rospy.get_param('~opcua_endpoint')
     if not rospy.has_param('~opcua_server_namespace'):
         raise rospy.ROSInitException(
             'Parameter "opcua_server_namespace" must be specified in accordance with OPCU-UA'
@@ -34,7 +35,7 @@ if __name__ == '__main__':
     opcua_client_node = rospy.get_param('opcua_client_node', '/opcua/opcua_client')
 
     # connect to opcua client
-    opcua = OpcuaClient(opcua_client_node)
+    opcua = OpcuaClient(opcua_client_node, opcua_endpoint)
     opcua_ns = opcua_server_namespace
 
     # advertise color
