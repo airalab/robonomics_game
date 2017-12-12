@@ -40,3 +40,11 @@ catkin_package(
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
+
+install(
+    FILES
+        launch/storage.launch
+        launch/supplier.launch
+    DESTINATION
+        ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
