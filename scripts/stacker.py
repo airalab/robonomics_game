@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import Queue
+from sys import version_info
+if version_info[0] <= 2:
+    from Queue import Queue
+else:
+    from queue import Queue
 import threading
 import rospy
 import actionlib
@@ -13,7 +17,7 @@ class Stacker:
     state = -1
     enabled = False
     direction = ''
-    jobs_queue = Queue.Queue()
+    jobs_queue = Queue()
 
     def __init__(self, name, opcua_server_namespace, opcua_client_node,
                  timeout,  # ms

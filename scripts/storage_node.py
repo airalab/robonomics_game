@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from sys import version_info
-if version_info[0] < 3:
+if version_info[0] <= 2:
     from Queue import Queue
 else:
     from queue import Queue
