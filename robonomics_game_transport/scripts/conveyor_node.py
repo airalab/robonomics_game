@@ -10,13 +10,13 @@ from robonomics_game_transport.srv import ConveyorLoad, ConveyorLoadResponse
 
 class Conveyor:
     state = [-1, -1, -1, -1]
-    def __init__(self, opcua_server_namespace, opcua_node,
+    def __init__(self, opcua_client_node, opcua_endpoint, opcua_server_namespace,
                  tr_load_time,  # ms, time to move after sensor find an object
                  tr_unload_time,  # ms, time to move after object gone from sensor
                  tr_timeout,  # ms, time to wait object until generate fault
                  tl_unload_time  # ms, unload for linear conveyour
                  ):
-        self.opcua = OpcuaClient(opcua_node)
+        self.opcua = OpcuaClient(opcua_client_node, opcua_endpoint)
         self.opcua_ns = opcua_server_namespace
 
         #self.opcua.write(self.opcua_ns + '/Settings/Tr_load_time', 'uint16', tr_load_time)
@@ -88,6 +88,7 @@ class Conveyor:
 if __name__ == '__main__':
     rospy.init_node('conveyor')
 
+    opcua_endpoint = rospy.get_param('~opcua_endpoint')
     if not rospy.has_param('~opcua_server_namespace'):
         raise rospy.ROSInitException(
             'Parameter "opcua_server_namespace" must be specified in accordance with OPCU-UA'
@@ -104,7 +105,7 @@ if __name__ == '__main__':
     tr_timeout = rospy.get_param('tr_timeout', 5000)
     tl_unload_time = rospy.get_param('tl_unload_time', 2000)
 
-    conveyor = Conveyor(opcua_server_namespace, opcua_client_node,
+    conveyor = Conveyor(opcua_client_node, opcua_endpoint, opcua_server_namespace, 
                         tr_load_time, tr_unload_time, tr_timeout, tl_unload_time)
     conveyor.enable()
     rospy.on_shutdown(conveyor.disable)

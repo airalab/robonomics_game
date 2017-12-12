@@ -10,6 +10,7 @@ if __name__ == '__main__':
     node_name = rospy.get_name()
     rospy.logwarn('Node name: ' + node_name)
 
+    opcua_endpoint = rospy.get_param('~opcua_endpoint')
     if not rospy.has_param('~opcua_server_namespace'):
         raise rospy.ROSInitException(
             'Parameter "opcua_server_namespace" must be specified in accordance with OPCU-UA'
@@ -30,7 +31,8 @@ if __name__ == '__main__':
     direction = rospy.get_param('~direction')
     timeout = rospy.get_param('~timeout', 5000)
 
-    stacker = Stacker(node_name, opcua_server_namespace, opcua_client_node, timeout, direction)
+    stacker = Stacker(node_name, opcua_client_node, opcua_endpoint, opcua_server_namespace,
+                        timeout, direction)
     stacker.enable()
 
     rospy.spin()

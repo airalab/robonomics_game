@@ -9,11 +9,9 @@ import time
 import threading
 import rospy
 import actionlib
-
+import ros_opcua_srvs.srv as ros_opcua
 from robonomics_game_plant.msg import OrderAction, OrderFeedback, OrderResult
 from robonomics_game_plant.srv import Unload, UnloadResponse
-
-import ros_opcua_srvs.srv as ros_opcua
 
 
 class Plant:
@@ -22,12 +20,24 @@ class Plant:
     orders_queue = Queue()
     _last_enable_time = 0  # ms
 
-    def __init__(self, name, opcua_server_namespace, opcua_client_node,
+    def __init__(self, name, opcua_client_node, opcua_endpoint, opcua_server_namespace, 
                  unload_time,  # ms, time conveyor will move after detail gone from sensor
                  handle_time,  # ms, detail processing time
                  timeout  # ms, proximity sensors and communication response timeout
                  ):
         # connect to OPC-UA Server using ros opcua client
+        rospy.logdebug('Connecting to OPC UA endpoint: ' + opcua_endpoint)
+        rospy.wait_for_service(opcua_client_node + '/connect')
+        opcua_client_connect = rospy.ServiceProxy(opcua_client_node + '/connect', ros_opcua.Connect)
+        request = ros_opcua.ConnectRequest()
+        request.endpoint = opcua_endpoint
+        response = ros_opcua.ConnectResponse()
+        response.success = False
+        while not response.success:
+            response = opcua_client_connect(request)
+            rospy.logdebug('OPC UA Connection: ' + str(response.success))
+            rospy.sleep(1)
+
         self._opcua_client_node = opcua_client_node  # 'ns=<int>;s=/<VendorName>/<PlantName>/<Tag>
         self._opcua_server_namespace = opcua_server_namespace
         self._opcua_client_read = rospy.ServiceProxy(
@@ -197,6 +207,7 @@ if __name__ == '__main__':
     rospy.init_node('plant')
     node_name = rospy.get_name()
 
+    opcua_endpoint= rospy.get_param('~opcua_endpoint')
     if not rospy.has_param('~opcua_server_namespace'):
         raise rospy.ROSInitException(
             'Parameter "opcua_server_namespace" must be specified in accordance with OPCU-UA'
@@ -215,7 +226,7 @@ if __name__ == '__main__':
     handle_time = rospy.get_param('~handle_time', 2000)
     timeout = rospy.get_param('~timeout', 5000)
 
-    plant = Plant(node_name, opcua_server_namespace,
-                  opcua_client_node, unload_time, handle_time, timeout)
+    plant = Plant(node_name, opcua_client_node, opcua_endpoint, opcua_server_namespace,
+                    unload_time, handle_time, timeout)
 
     rospy.spin()

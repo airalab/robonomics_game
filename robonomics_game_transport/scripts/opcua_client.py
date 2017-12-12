@@ -4,8 +4,24 @@ import rospy
 import ros_opcua_srvs.srv as ros_opcua
 
 class OpcuaClient:
-    def __init__(self, client_node):
+    connected = False
+    def __init__(self, client_node, endpoint):
+
         self.client_node = client_node
+        rospy.logdebug('Connecting to client: ' + client_node)
+        rospy.wait_for_service(client_node + '/connect')
+
+        rospy.logdebug('Endpoint: ' + endpoint)
+        client_connect = rospy.ServiceProxy(client_node + '/connect', ros_opcua.Connect)
+        request = ros_opcua.ConnectRequest()
+        request.endpoint = endpoint
+        response = ros_opcua.ConnectResponse()
+        while not self.connected: # wait for OPC UA Server connection
+            response = client_connect(request)
+            self.connected = response.success
+            rospy.logdebug('OPC UA connection: ' + str(self.connected))
+            rospy.sleep(1)
+
         self.client_read = rospy.ServiceProxy(
             client_node + '/read', ros_opcua.Read, persistent=True)
         self.client_write = rospy.ServiceProxy(

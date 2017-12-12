@@ -19,7 +19,7 @@ class Stacker:
     direction = ''
     jobs_queue = Queue()
 
-    def __init__(self, name, opcua_server_namespace, opcua_client_node,
+    def __init__(self, name, opcua_client_node, opcua_endpoint, opcua_server_namespace,
                  timeout,  # ms
                  direction  # 'fw' for [src, dest], 'bw' for [dest, src]
                  ):
@@ -28,7 +28,7 @@ class Stacker:
         self.set_direction(direction)
 
         # connect to opcua client
-        self.opcua = OpcuaClient(opcua_client_node)  # ros opcua client read/write interface
+        self.opcua = OpcuaClient(opcua_client_node, opcua_endpoint)  # ros opcua client read/write interface
         self.opcua_ns = opcua_server_namespace
 
         # create stacker action server
