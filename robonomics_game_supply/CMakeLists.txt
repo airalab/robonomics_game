@@ -21,8 +21,6 @@ catkin_install_python(
 )
 
 install(
-    FILES
-        launch/supply.launch
-    DESTINATION
-        ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+    DIRECTORY launch
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
