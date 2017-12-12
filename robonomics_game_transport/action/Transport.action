@@ -1,6 +1,0 @@
-uint8 address # plant number
-string specification # chunk color
----
-string act
----
-string status
