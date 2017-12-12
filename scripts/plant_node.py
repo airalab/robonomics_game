@@ -41,9 +41,9 @@ class Plant:
         self._opcua_client_node = opcua_client_node  # 'ns=<int>;s=/<VendorName>/<PlantName>/<Tag>
         self._opcua_server_namespace = opcua_server_namespace
         self._opcua_client_read = rospy.ServiceProxy(
-            '%s/read' % self._opcua_client_node, ros_opcua.Read, persistent=True)
+            '%s/read' % self._opcua_client_node, ros_opcua.Read)
         self._opcua_client_write = rospy.ServiceProxy(
-            '%s/write' % self._opcua_client_node, ros_opcua.Write, persistent=True)
+            '%s/write' % self._opcua_client_node, ros_opcua.Write)
 
         # prepare plant action server
         self.name = name
