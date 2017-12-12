@@ -29,6 +29,14 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+catkin_install_python(
+    PROGRAMS
+        scripts/warehouse.py
+        scripts/warehouse_node.py
+    DESTINATION
+        ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 install(
     DIRECTORY launch
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}

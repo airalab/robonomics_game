@@ -41,6 +41,19 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+catkin_install_python(
+    PROGRAMS
+        scripts/color_sensor_node.py
+        scripts/conveyor_node.py
+        scripts/opcua_client.py
+        scripts/stacker.py
+        scripts/stacker_node.py
+        scripts/storage_node.py
+        scripts/supplier_node.py
+    DESTINATION
+        ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 install(
     DIRECTORY launch
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
