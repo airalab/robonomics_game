@@ -42,9 +42,6 @@ catkin_package(
 )
 
 install(
-    FILES
-        launch/storage.launch
-        launch/supplier.launch
-    DESTINATION
-        ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+    DIRECTORY launch
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
