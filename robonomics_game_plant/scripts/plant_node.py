@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
+from sys import version_info
+if version_info[0] <= 2:
+    from Queue import Queue
+else:
+    from queue import Queue
 import time
 import threading
-import Queue
 import rospy
 import actionlib
 
@@ -15,7 +19,7 @@ import ros_opcua_srvs.srv as ros_opcua
 class Plant:
     name = ''
     state = -1  # -1 means undefined
-    orders_queue = Queue.Queue()
+    orders_queue = Queue()
     _last_enable_time = 0  # ms
 
     def __init__(self, name, opcua_server_namespace, opcua_client_node,
