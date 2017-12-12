@@ -17,15 +17,21 @@ class OpcuaClient:
         request.endpoint = endpoint
         response = ros_opcua.ConnectResponse()
         while not self.connected: # wait for OPC UA Server connection
-            response = client_connect(request)
+            try:
+                response = client_connect(request)
+            except rospy.ServiceException as e:
+                rospy.logerr('OPC UA connection failure!')
+                continue
+
             self.connected = response.success
             rospy.logdebug('OPC UA connection: ' + str(self.connected))
             rospy.sleep(1)
 
-        self.client_read = rospy.ServiceProxy(
-            client_node + '/read', ros_opcua.Read, persistent=True)
-        self.client_write = rospy.ServiceProxy(
-            client_node + '/write', ros_opcua.Write, persistent=True)
+        rospy.wait_for_service(client_node + '/read')
+        self.client_read = rospy.ServiceProxy(client_node + '/read', ros_opcua.Read)
+
+        rospy.wait_for_service(client_node + '/write')
+        self.client_write = rospy.ServiceProxy(client_node + '/write', ros_opcua.Write)
 
     def write(self, nodeId, data_type, value):
         """
