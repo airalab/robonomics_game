@@ -12,7 +12,7 @@ import actionlib
 import ros_opcua_srvs.srv as ros_opcua
 from robonomics_game_plant.msg import OrderAction, OrderFeedback, OrderResult
 from robonomics_game_plant.srv import Unload, UnloadResponse
-from .opcua_client import OpcuaClient
+from opcua_client import OpcuaClient
 
 class Plant:
     name = ''
