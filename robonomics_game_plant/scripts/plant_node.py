@@ -12,7 +12,7 @@ import actionlib
 import ros_opcua_srvs.srv as ros_opcua
 from robonomics_game_plant.msg import OrderAction, OrderFeedback, OrderResult
 from robonomics_game_plant.srv import Unload, UnloadResponse
-
+from opcua_client import OpcuaClient
 
 class Plant:
     name = ''
@@ -27,23 +27,10 @@ class Plant:
                  ):
         # connect to OPC-UA Server using ros opcua client
         rospy.logdebug('Connecting to OPC UA endpoint: ' + opcua_endpoint)
-        rospy.wait_for_service(opcua_client_node + '/connect')
-        opcua_client_connect = rospy.ServiceProxy(opcua_client_node + '/connect', ros_opcua.Connect)
-        request = ros_opcua.ConnectRequest()
-        request.endpoint = opcua_endpoint
-        response = ros_opcua.ConnectResponse()
-        response.success = False
-        while not response.success:
-            response = opcua_client_connect(request)
-            rospy.logdebug('OPC UA Connection: ' + str(response.success))
-            rospy.sleep(1)
 
-        self._opcua_client_node = opcua_client_node  # 'ns=<int>;s=/<VendorName>/<PlantName>/<Tag>
-        self._opcua_server_namespace = opcua_server_namespace
-        self._opcua_client_read = rospy.ServiceProxy(
-            '%s/read' % self._opcua_client_node, ros_opcua.Read)
-        self._opcua_client_write = rospy.ServiceProxy(
-            '%s/write' % self._opcua_client_node, ros_opcua.Write)
+        # connect to opcua client
+        self.opcua = OpcuaClient(opcua_client_node, opcua_endpoint)  # ros opcua client read/write interface
+        self.opcua_ns = opcua_server_namespace
 
         # prepare plant action server
         self.name = name
@@ -59,12 +46,11 @@ class Plant:
         self._unload_time = unload_time
         self._handle_time = handle_time
         self._timeout = timeout  # ms, proximity sensors and communication timeout
-        ns = self._opcua_server_namespace  # tags nodeId from OPC-UA server model
         
         try:
-            self._opcua_write(ns + '/Settings/UnloadTime', 'uint16', unload_time)
-            self._opcua_write(ns + '/Settings/HandleTime', 'uint16', handle_time)
-            self._opcua_write(ns + '/Settings/Timeout', 'uint16', timeout)
+            self.opcua.write(self.opcua_ns + '/Settings/UnloadTime', 'uint16', unload_time)
+            self.opcua.write(self.opcua_ns + '/Settings/HandleTime', 'uint16', handle_time)
+            self.opcua.write(self.opcua_ns + '/Settings/Timeout', 'uint16', timeout)
         except rospy.ServiceException as e:
             rospy.logerr('Exception raised while OPC-UA request: %s' % e)
             rospy.logerr('Check OPC-UA client, server connection or server model')
@@ -122,7 +108,7 @@ class Plant:
                 return
             rospy.sleep(1)
         # Reset for a next rising edge
-        self._opcua_write(self._opcua_server_namespace + '/Enable', 'bool', False)
+        self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
         result = OrderResult()
         result.act = 'Order %s %s complete' % (str(order.get_goal_id()), str(order.get_goal()))
         order.set_succeeded(result)
@@ -139,16 +125,15 @@ class Plant:
             self._last_enable_time = now
             try:
                 # Rising edge enables plant, check LOW state first
-                ns = self._opcua_server_namespace
-                response = self._opcua_read(ns + '/Enable')
+                response = self.opcua.read(self.opcua_ns + '/Enable')
                 if not response.success:
                     rospy.logerr('Enable request not successful')
                     return
                 if response.data.bool_d is True:
                     rospy.logerr('Plant enabled without node call. Reseting enable signal')
-                    self._opcua_write(ns + '/Enable', 'bool', False)
+                    self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
                     rospy.sleep(1)
-                response = self._opcua_write(ns + '/Enable', 'bool', True)
+                response = self.opcua.write(self.opcua_ns + '/Enable', 'bool', True)
                 # ensure PLC starts the order checking state is not undefined or off
                 t = time.time() * 1000  # ms
                 while self.state <= 0:  # undefined or disabled
@@ -163,15 +148,14 @@ class Plant:
                           'Minium run period: %d sec.' % (now - last, period))
     def unload(self, request):
         rospy.loginfo('Unloading...')
-        self._opcua_write(self._opcua_server_namespace + '/Unload', 'bool', True)
+        self.opcua.write(self.opcua_ns + '/Unload', 'bool', True)
         rospy.sleep(2)
-        self._opcua_write(self._opcua_server_namespace + '/Unload', 'bool', False)
+        self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
         return UnloadResponse()
 
     def _state_updater(self):
-        ns = self._opcua_server_namespace
         while not rospy.is_shutdown():
-            response = self._opcua_read(ns + '/State')
+            response = self.opcua.read(self.opcua_ns + '/State')
             if not response.success:
                 rospy.logwarn('State update unsuccessful')
                 self.state = -1
@@ -183,25 +167,6 @@ class Plant:
                     'Deprecated state code: %d, set state to undefined (-1)' % self.state)
                 self.state = -1
             time.sleep(1)
-
-    def _opcua_write(self, nodeId, data_type, value):
-        request = ros_opcua.WriteRequest()
-        request.node.nodeId = nodeId
-        request.data.type = data_type
-        setattr(request.data, '%s_d' % data_type, value)
-        response = self._opcua_client_write(request)
-        if not response.success:
-            rospy.logwarn('No response to opcua request: %s' % request)
-        return response
-
-    def _opcua_read(self, nodeId):
-        request = ros_opcua.ReadRequest()
-        request.node.nodeId = nodeId
-        response = self._opcua_client_read(request)
-        if not response.success:
-            rospy.logwarn('No response to opcua request: %s' % request)
-        return response  # take a value: getattr(response.data, '%s_d'%response.data.type)
-
 
 if __name__ == '__main__':
     rospy.init_node('plant')
