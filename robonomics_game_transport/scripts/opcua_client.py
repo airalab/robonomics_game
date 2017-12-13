@@ -16,7 +16,7 @@ class OpcuaClient:
         request = ros_opcua.ConnectRequest()
         request.endpoint = endpoint
         try:
-            response = ros_opcua.ConnectRequest()
+            response = ros_opcua.ConnectResponse()
             response.success = False
             response = client_connect(request)
             rospy.logdebug('OPC UA connection: ' + str(response))

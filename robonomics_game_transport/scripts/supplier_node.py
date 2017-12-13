@@ -33,9 +33,11 @@ class Supplier:
         for content in catalog: # call: resp = warehouse.get(content)() -> {ok, q}
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/raws/' + content + '/order', WarehouseOrder) })
             if warehouse_init_state == 'full':
+                rospy.wait_for_service('/warehouse/raws/' + content + '/fill_all')
                 fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
                 fill_srv()
             elif warehouse_init_state == 'empty':
+                rospy.wait_for_service('/warehouse/raws/' + content + '/empty_all')
                 empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/empty_all', WarehouseEmptyAll)
                 empty_srv()
 

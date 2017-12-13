@@ -34,9 +34,11 @@ class Storage:
         for content in catalog:
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/goods/' + content + '/place', WarehousePlace) })
             if warehouse_init_state == 'full':
+                rospy.wait_for_service('/warehouse/raws/' + content + '/fill_all')
                 fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
                 fill_srv()
             elif warehouse_init_state == 'empty':
+                rospy.wait_for_service('/warehouse/raws/' + content + '/empty')
                 empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/empty_all', WarehouseEmptyAll)
                 empty_srv()
 
