@@ -4,28 +4,29 @@ import rospy
 import ros_opcua_srvs.srv as ros_opcua
 
 class OpcuaClient:
-    connected = False
     def __init__(self, client_node, endpoint):
 
         self.client_node = client_node
         rospy.logdebug('Connecting to client: ' + client_node)
-        rospy.wait_for_service(client_node + '/connect')
-
         rospy.logdebug('Endpoint: ' + endpoint)
+
+        rospy.wait_for_service(client_node + '/connect')
         client_connect = rospy.ServiceProxy(client_node + '/connect', ros_opcua.Connect)
+
         request = ros_opcua.ConnectRequest()
         request.endpoint = endpoint
-        response = ros_opcua.ConnectResponse()
-        while not self.connected: # wait for OPC UA Server connection
+        try:
             response = client_connect(request)
-            self.connected = response.success
-            rospy.logdebug('OPC UA connection: ' + str(self.connected))
+            rospy.logdebug('OPC UA connection: ' + str(response))
             rospy.sleep(1)
+        except rospy.ServiceException as e:
+            rospy.logerr('OPC UA connection failure!')
 
-        self.client_read = rospy.ServiceProxy(
-            client_node + '/read', ros_opcua.Read, persistent=True)
-        self.client_write = rospy.ServiceProxy(
-            client_node + '/write', ros_opcua.Write, persistent=True)
+        rospy.wait_for_service(client_node + '/read')
+        self.client_read = rospy.ServiceProxy(client_node + '/read', ros_opcua.Read)
+
+        rospy.wait_for_service(client_node + '/write')
+        self.client_write = rospy.ServiceProxy(client_node + '/write', ros_opcua.Write)
 
     def write(self, nodeId, data_type, value):
         """
@@ -36,7 +37,6 @@ class OpcuaClient:
         request.node.nodeId = nodeId
         request.data.type = data_type 
         setattr(request.data, '%s_d' % data_type, value)
-        response = ros_opcua.WriteResponse()
         try:
             response = self.client_write(request)
         except rospy.ServiceException as e:
@@ -53,7 +53,6 @@ class OpcuaClient:
         """
         request = ros_opcua.ReadRequest()
         request.node.nodeId = nodeId
-        response = ros_opcua.ReadResponse()
         try:
             response = self.client_read(request)
         except rospy.ServiceException as e:
