@@ -19,6 +19,7 @@ from robonomics_game_transport.msg import StackerAction, StackerGoal
 class Supplier:
     busy = False
     jobs_queue = Queue()
+    liability_address = ''
 
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('supplier', TransportAction, self.plan_job, auto_start=False)
@@ -41,13 +42,16 @@ class Supplier:
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
 
-        self.liability_address = ''
         def update_liability(msg):
             self.liability_address = msg.address
         rospy.Subscriber(liability_node + '/current', Liability, update_liability)
+
         self.finish = rospy.Publisher(liability_node + '/finish', String, queue_size=10)
 
         self.current_gh = None
+
+    def spin(self):
+        rospy.spin()
 
     def plan_job(self, job):
         job.set_accepted()
@@ -93,4 +97,4 @@ if __name__ == '__main__':
     warehouse_init_state = rospy.get_param('~warehouse_init_state', '') # leave state undefined if not given
     stacker_node = rospy.get_param('~stacker_node')
     liability_node = rospy.get_param('~liability_node')
-    supplier = Supplier(node_name, catalog, warehouse_init_state, stacker_node, liability_node)
+    Supplier(node_name, catalog, warehouse_init_state, stacker_node, liability_node).spin()
