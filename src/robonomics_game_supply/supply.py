@@ -76,6 +76,11 @@ class Supply(SupplyChain):
         self._orders_proc_thread.daemon = True
         self._orders_proc_thread.start()
 
+	liability_node = rospy.get_param('~liability_node')
+        self.liability_address = ''
+        def update_liability(msg):
+            self.liability_address = msg.address
+        rospy.Subscriber(liability_node + '/current', Liability, update_liability)
         self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
 
     def spin(self):
@@ -109,7 +114,10 @@ class Supply(SupplyChain):
             else:
                 break
         result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(self.plant_gh.get_terminal_state())
-        self.finish.publish(result)
+	rospy.logdebug(result)
+        msg = String()
+        msg.data = self.liability_address
+        self.finish.publish(msg)
         self.plant_gh = None
 
     def finalize(self, objective):
