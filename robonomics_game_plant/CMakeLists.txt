@@ -34,6 +34,7 @@ catkin_package(
 catkin_install_python(
     PROGRAMS
         scripts/plant_node.py
+        scripts/opcua_client.py
     DESTINATION
         ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
