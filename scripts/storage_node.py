@@ -11,7 +11,7 @@ import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from std_msgs.msg import String
-
+from robonomics_liability.msg import Liability
 from robonomics_game_warehouse.srv import Place as WarehousePlace
 from robonomics_game_transport.srv import ConveyorLoad, ConveyorDestination
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
@@ -21,7 +21,7 @@ class Storage:
     busy = False
     jobs_queue = Queue()
 
-    def __init__(self, name, catalog, stacker_node):
+    def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('storage', TransportAction, self.plan_job, auto_start=False)
         self._server.start()
 
@@ -32,12 +32,23 @@ class Storage:
         self.warehouse = dict() # warehouses place service proxy
         for content in catalog:
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/goods/' + content + '/place', WarehousePlace) })
+            if warehouse_init_sate == 'full':
+                fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
+                fill_srv()
+            elif warehouse_init_state == 'empty':
+                empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/empty_all', WarehouseEmptyAll)
+                empty_srv()
+
         self.conveyor_load = rospy.ServiceProxy('/transport_goods/conveyor/load', ConveyorLoad)
         self.conveyor_destination = rospy.ServiceProxy('/transport_goods/conveyor/destination', ConveyorDestination) # 'warehouse' or 'garbage'
 
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
 
+        self.liability_address = ''
+        def update_liability(msg):
+            self.liability_address = msg.address
+        rospy.Subscriber(liability_node + '/current', Liability, update_liability)
         self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
 
         self.current_gh = None
@@ -80,12 +91,16 @@ class Storage:
                 rospy.sleep(10) # wait until chunk throwed down, #TODO
                 job.set_succeeded(result)
         finally:
-            self.finish.publish(result.act)
+            msg = String()
+            msg.data = self.liability_address
+            self.finish.publish(msg)
             self.busy = False
 
 if __name__ == '__main__':
     rospy.init_node('supplier')
     node_name = rospy.get_name()
-    stacker_node = rospy.get_param('~stacker_node')
     catalog = rospy.get_param('~catalog', ['yellow', 'green', 'blue', 'purple'])
-    supplier = Storage(node_name, catalog, stacker_node)
+    warehouse_init_state = rospy.get_param('~warehouse_init_state', '') # leave state undefined if not given
+    stacker_node = rospy.get_param('~stacker_node')
+    liability_node = rospy.get_param('~liability_node')
+    supplier = Storage(node_name, catalog, warehouse_init_state, stacker_node, liability_node)
