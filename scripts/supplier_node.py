@@ -11,7 +11,7 @@ import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from std_msgs.msg import String
-
+from robonomics_liability.msg import Liability
 from robonomics_game_warehouse.srv import Order as WarehouseOrder
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
 from robonomics_game_transport.msg import StackerAction, StackerGoal
@@ -20,7 +20,7 @@ class Supplier:
     busy = False
     jobs_queue = Queue()
 
-    def __init__(self, name, catalog, stacker_node):
+    def __init__(self, name, catalog, stacker_node, liability_node):
         self._server = actionlib.ActionServer('supplier', TransportAction, self.plan_job, auto_start=False)
         self._server.start()
 
@@ -35,7 +35,11 @@ class Supplier:
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
 
-        self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
+        self.liability_address = ''
+        def update_liability(msg):
+            self.liability_address = msg.address
+        rospy.Subscriber(liability_node + '/current', Liability, update_liability)
+        self.finish = rospy.Publisher(liability_node + '/finish', String, queue_size=10)
 
         self.current_gh = None
 
@@ -71,7 +75,9 @@ class Supplier:
                 job.set_aborted(result)
                 rospy.logdebug('Job aborted')
         finally:
-            self.finish.publish(result.act)
+            msg = String()
+            msg.data = self.liability_address
+            self.finish.publish(msg)
             self.busy = False
 
 if __name__ == '__main__':
@@ -79,4 +85,5 @@ if __name__ == '__main__':
     node_name = rospy.get_name()
     stacker_node = rospy.get_param('~stacker_node')
     catalog = rospy.get_param('~catalog', ['yellow', 'green', 'blue', 'purple'])
-    supplier = Supplier(node_name, catalog, stacker_node)
+    libility_node = rospy.get_param('liability_node')
+    supplier = Supplier(node_name, catalog, stacker_node, liability_node)
