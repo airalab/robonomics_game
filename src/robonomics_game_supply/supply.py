@@ -76,8 +76,8 @@ class Supply(SupplyChain):
         self._orders_proc_thread = threading.Thread(target=self._orders_proc)
         self._orders_proc_thread.daemon = True
         self._orders_proc_thread.start()
-
-	liability_node = rospy.get_param('~liability_node')
+        
+        liability_node = rospy.get_param('~liability_node')
         def update_liability(msg):
             self.liability_address = msg.address
         rospy.Subscriber(liability_node + '/current', Liability, update_liability)
@@ -114,7 +114,7 @@ class Supply(SupplyChain):
             else:
                 break
         result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(self.plant_gh.get_terminal_state())
-	rospy.logdebug(result)
+        rospy.logdebug(result)
         msg = String()
         msg.data = self.liability_address
         self.finish.publish(msg)
