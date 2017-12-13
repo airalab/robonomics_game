@@ -61,6 +61,7 @@ storage = {
 class Supply(SupplyChain):
     busy = False
     orders_queue = Queue()
+    liability_address = ''
 
     def __init__(self):
         SupplyChain.__init__(self)
@@ -77,7 +78,6 @@ class Supply(SupplyChain):
         self._orders_proc_thread.start()
 
 	liability_node = rospy.get_param('~liability_node')
-        self.liability_address = ''
         def update_liability(msg):
             self.liability_address = msg.address
         rospy.Subscriber(liability_node + '/current', Liability, update_liability)

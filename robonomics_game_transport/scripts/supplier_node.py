@@ -12,7 +12,7 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from std_msgs.msg import String
 from robonomics_liability.msg import Liability
-from robonomics_game_warehouse.srv import Order as WarehouseOrder
+from robonomics_game_warehouse.srv import Order as WarehouseOrder, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
 from robonomics_game_transport.msg import StackerAction, StackerGoal
 
@@ -32,7 +32,7 @@ class Supplier:
         self.warehouse = dict() # warehouses order service proxy
         for content in catalog: # call: resp = warehouse.get(content)() -> {ok, q}
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/raws/' + content + '/order', WarehouseOrder) })
-            if warehouse_init_sate == 'full':
+            if warehouse_init_state == 'full':
                 fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
                 fill_srv()
             elif warehouse_init_state == 'empty':
