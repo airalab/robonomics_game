@@ -2,7 +2,7 @@
   <node ns="opcua" name="opcua_client" pkg="ros_opcua_impl_freeopcua" type="client_node" output="screen" />
   <group ns="welder"> <!-- 1-welder, 2-driller, 3-miller, 4-cnc -->
     <node pkg="robonomics_game_plant" type="plant_node.py" name="plant" output="screen">
-      <param name="opcua_endnode" value="opc.tcp://192.168.10.3:53880/" />
+      <param name="opcua_endpoint" value="opc.tcp://192.168.10.3:53880/" />
       <param name="opcua_server_namespace" value="ns=3;s=/Airalab/Plant1" />
     </node>
     <node pkg="robonomics_game_supply" type="supply_node" name="supply_chain" output="screen">
