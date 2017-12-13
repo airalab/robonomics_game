@@ -37,7 +37,9 @@
       <param name="timeout" value="5000" />
     </node>
     <node pkg="robonomics_game_transport" name="supplier" type="supplier_node.py" output="screen">
+      <param name="liability_node" value="/liability" />
       <param name="stacker_node" value="/transport_raws/stacker_raws" />
+      <param name="warehouse_init_state" value="full" /> <!-- "full" or "empty" -->
     </node>
   </group>
 </launch>
