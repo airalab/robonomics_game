@@ -76,7 +76,7 @@ class Supply(SupplyChain):
         self._orders_proc_thread.daemon = True
         self._orders_proc_thread.start()
 
-        self.finish = rospy.Publisher('/finish', String, queue_size=10)
+        self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
 
     def spin(self):
         '''
