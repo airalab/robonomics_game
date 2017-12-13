@@ -35,7 +35,7 @@ class Supplier:
                 fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
                 fill_srv()
             elif warehouse_init_state == 'empty':
-                empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseEmptyAll)
+                empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/empty_all', WarehouseEmptyAll)
                 empty_srv()
 
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
@@ -92,5 +92,5 @@ if __name__ == '__main__':
     catalog = rospy.get_param('~catalog', ['yellow', 'green', 'blue', 'purple'])
     warehouse_init_state = rospy.get_param('~warehouse_init_state', '') # leave state undefined if not given
     stacker_node = rospy.get_param('~stacker_node')
-    libility_node = rospy.get_param('~liability_node')
+    liability_node = rospy.get_param('~liability_node')
     supplier = Supplier(node_name, catalog, warehouse_init_state, stacker_node, liability_node)
