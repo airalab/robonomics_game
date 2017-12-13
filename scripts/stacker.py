@@ -90,6 +90,8 @@ class Stacker:
             self.enable()
         rospy.logdebug('Starting new job: ' + str(job.get_goal().job))
         rospy.logdebug('GoalHandler: %s, Goal: %s, Job: %s' % ( str(dir(job)), str( dir(job.get_goal()) ), str( dir(job.get_goal().job) ) ) )
+        self.opcua.write(self.opcua_ns + '/Start', 'bool', False) # reset for next start signal
+        rospy.sleep(1)
         source = job.get_goal().job[0:2]
         destination = job.get_goal().job[2:4]
         result = StackerResult()
@@ -126,8 +128,10 @@ class Stacker:
         response.append(self.opcua.write(self.opcua_ns + '/Point2X', 'uint16', destination[0]))
         response.append(self.opcua.write(self.opcua_ns + '/Point2Z', 'uint16', destination[1]))
         response.append(self.opcua.write(self.opcua_ns + '/Start', 'bool', True))
+        rospy.logdebug('4 points, start:')
         for r in response:
             success = success and r.success
+            rospy.logdebug(str(r.success))
         return success
 
     def enable(self):

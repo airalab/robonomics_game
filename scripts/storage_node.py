@@ -12,7 +12,7 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from std_msgs.msg import String
 from robonomics_liability.msg import Liability
-from robonomics_game_warehouse.srv import Place as WarehousePlace
+from robonomics_game_warehouse.srv import Place as WarehousePlace, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.srv import ConveyorLoad, ConveyorDestination
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
 from robonomics_game_transport.msg import StackerAction, StackerGoal
@@ -20,6 +20,7 @@ from robonomics_game_transport.msg import StackerAction, StackerGoal
 class Storage:
     busy = False
     jobs_queue = Queue()
+    liability_address = ''
 
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('storage', TransportAction, self.plan_job, auto_start=False)
@@ -32,10 +33,12 @@ class Storage:
         self.warehouse = dict() # warehouses place service proxy
         for content in catalog:
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/goods/' + content + '/place', WarehousePlace) })
-            if warehouse_init_sate == 'full':
+            if warehouse_init_state == 'full':
+                rospy.wait_for_service('/warehouse/raws/' + content + '/fill_all')
                 fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
                 fill_srv()
             elif warehouse_init_state == 'empty':
+                rospy.wait_for_service('/warehouse/raws/' + content + '/empty')
                 empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/empty_all', WarehouseEmptyAll)
                 empty_srv()
 
@@ -45,13 +48,16 @@ class Storage:
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
 
-        self.liability_address = ''
         def update_liability(msg):
             self.liability_address = msg.address
         rospy.Subscriber(liability_node + '/current', Liability, update_liability)
+
         self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
 
         self.current_gh = None
+
+    def spin(self):
+        rospy.spin()
 
     def plan_job(self, job):
         job.set_accepted()
@@ -103,4 +109,4 @@ if __name__ == '__main__':
     warehouse_init_state = rospy.get_param('~warehouse_init_state', '') # leave state undefined if not given
     stacker_node = rospy.get_param('~stacker_node')
     liability_node = rospy.get_param('~liability_node')
-    supplier = Storage(node_name, catalog, warehouse_init_state, stacker_node, liability_node)
+    Storage(node_name, catalog, warehouse_init_state, stacker_node, liability_node).spin()
