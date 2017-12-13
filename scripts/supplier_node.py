@@ -35,7 +35,7 @@ class Supplier:
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
 
-        self.finish = rospy.Publisher('/finish', String, queue_size=10)
+        self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
 
         self.current_gh = None
 
