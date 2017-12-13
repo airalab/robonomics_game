@@ -20,7 +20,7 @@ class Supplier:
     busy = False
     jobs_queue = Queue()
 
-    def __init__(self, name, catalog, stacker_node, liability_node):
+    def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('supplier', TransportAction, self.plan_job, auto_start=False)
         self._server.start()
 
@@ -31,6 +31,12 @@ class Supplier:
         self.warehouse = dict() # warehouses order service proxy
         for content in catalog: # call: resp = warehouse.get(content)() -> {ok, q}
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/raws/' + content + '/order', WarehouseOrder) })
+            if warehouse_init_sate == 'full':
+                fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
+                fill_srv()
+            elif warehouse_init_state == 'empty':
+                empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseEmptyAll)
+                empty_srv()
 
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
@@ -83,7 +89,8 @@ class Supplier:
 if __name__ == '__main__':
     rospy.init_node('supplier')
     node_name = rospy.get_name()
-    stacker_node = rospy.get_param('~stacker_node')
     catalog = rospy.get_param('~catalog', ['yellow', 'green', 'blue', 'purple'])
-    libility_node = rospy.get_param('liability_node')
-    supplier = Supplier(node_name, catalog, stacker_node, liability_node)
+    warehouse_init_state = rospy.get_param('~warehouse_init_state', '') # leave state undefined if not given
+    stacker_node = rospy.get_param('~stacker_node')
+    libility_node = rospy.get_param('~liability_node')
+    supplier = Supplier(node_name, catalog, warehouse_init_state, stacker_node, liability_node)
