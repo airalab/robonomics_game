@@ -16,6 +16,8 @@ class OpcuaClient:
         request = ros_opcua.ConnectRequest()
         request.endpoint = endpoint
         try:
+            response = ros_opcua.ConnectRequest()
+            response.success = False
             response = client_connect(request)
             rospy.logdebug('OPC UA connection: ' + str(response))
             rospy.sleep(1)
@@ -38,6 +40,8 @@ class OpcuaClient:
         request.data.type = data_type 
         setattr(request.data, '%s_d' % data_type, value)
         try:
+            response = ros_opcua.WriteResponse()
+            response.success = False
             response = self.client_write(request)
         except rospy.ServiceException as e:
             rospy.logerr('Check OPC-UA client, server connection or server model')
@@ -54,6 +58,8 @@ class OpcuaClient:
         request = ros_opcua.ReadRequest()
         request.node.nodeId = nodeId
         try:
+            response = ros_opcua.ReadResponse()
+            response.success = False
             response = self.client_read(request)
         except rospy.ServiceException as e:
             rospy.logerr('Check OPC-UA client, server connection or server model')
