@@ -63,6 +63,9 @@ class Plant:
 
         # unload signal service
         rospy.Service('~unload', Unload, self.unload)
+    
+    def spin(self):
+        rospy.spin()
 
     def plan_job(self, order):
         rospy.logdebug('Got a new order')
@@ -94,7 +97,7 @@ class Plant:
         state_prev = 0
         rospy.sleep(2)
         rospy.logdebug('Staring new job')
-        while self.state is not 0:  # publish changing feedback while order in proc
+        while self.state not in [0, 9]:  # publish changing feedback while order in proc
             if self.state != state_prev:
                 feedback = OrderFeedback()
                 feedback.status = str(self.state)
@@ -102,13 +105,13 @@ class Plant:
                 state_prev = self.state
             if self.state == -1 or self.state == 11:  # abort order if something go wrong
                 reslt = OrderResult()
-                result.act = 'Order %s %s aborted' % (
-                    str(order.get_goal_id()), str(order.get_goal()))
+                result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
                 order.set_aborted(result)
+                self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
                 return
             rospy.sleep(1)
         # Reset for a next rising edge
-        self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+        # self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
         result = OrderResult()
         result.act = 'Order %s %s complete' % (str(order.get_goal_id()), str(order.get_goal()))
         order.set_succeeded(result)
@@ -146,14 +149,20 @@ class Plant:
         else:
             rospy.logwarn('Order run attempt after %d sec from the last run ingnored.'
                           'Minium run period: %d sec.' % (now - last, period))
+
     def unload(self, request):
-        rospy.loginfo('Unloading...')
-        self.opcua.write(self.opcua_ns + '/Unload', 'bool', True)
-        rospy.sleep(2)
+        rospy.logdebug('Unloading...')
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
+        rospy.sleep(2)
+        self.opcua.write('ns=3;s=/Airalab/Plant1/Unload', 'bool', True)
+        rospy.sleep(10) # wait for unload by conveyor
+        self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
+        self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+        rospy.logdebug('Unloaded')
         return UnloadResponse()
 
     def _state_updater(self):
+        rospy.logdebug('State updater run')
         while not rospy.is_shutdown():
             response = self.opcua.read(self.opcua_ns + '/State')
             if not response.success:
@@ -161,11 +170,12 @@ class Plant:
                 self.state = -1
                 continue
             self.state = getattr(response.data, '%s_d' % response.data.type)
-            rospy.logdebug('State: ' + str(self.state))
+            rospy.logdebug('Plant state: ' + str(self.state))
             if self.state not in range(0, 12):  # PLC state codes can be fromm 0 to 11
                 rospy.logwarn(
                     'Deprecated state code: %d, set state to undefined (-1)' % self.state)
                 self.state = -1
+            rospy.logdebug( 'New plant state: ' + str(self.state) )
             time.sleep(1)
 
 if __name__ == '__main__':
@@ -191,7 +201,4 @@ if __name__ == '__main__':
     handle_time = rospy.get_param('~handle_time', 2000)
     timeout = rospy.get_param('~timeout', 5000)
 
-    plant = Plant(node_name, opcua_client_node, opcua_endpoint, opcua_server_namespace,
-                    unload_time, handle_time, timeout)
-
-    rospy.spin()
+    Plant(node_name, opcua_client_node, opcua_endpoint, opcua_server_namespace, unload_time, handle_time, timeout).spin()

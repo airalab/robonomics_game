@@ -2,7 +2,7 @@
   <node ns="opcua" name="opcua_client" pkg="ros_opcua_impl_freeopcua" type="client_node" output="screen" />
   <group ns="plant">
   <param name="opcua_client_node" value="/opcua/opcua_client" />
-      <node pkg="robonomics_game_plant" name="mill" type="plant_node.py">
+      <node pkg="robonomics_game_plant" name="mill" type="plant_node.py" output="screen">
         <param name="opcua_endpoint" value="opc.tcp://0.0.0.0:53880/" />
         <param name="opcua_server_namespace" value="ns=3;s=/Airalab/Plant1" />
         <param name="unload_time" value="2000" />
