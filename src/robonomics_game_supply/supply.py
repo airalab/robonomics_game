@@ -18,8 +18,8 @@ from robonomics_liability.msg import Liability
 from robonomics_game_plant.msg import OrderAction as PlantAction, OrderGoal as PlantGoal 
 from robonomics_game_plant.srv import Unload as PlantUnload
 
-supplier_market = ''
-storage_market = ''
+supplier_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz4'
+storage_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz5'
 
 supplier = {
     'blue': [ 'Qmda9BiBqyJoqHWis1VV7UbLLnhp1xk9gMMMQV7qcP4poT'
