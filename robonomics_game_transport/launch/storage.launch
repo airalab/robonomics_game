@@ -63,7 +63,7 @@
 
     <node pkg="robonomics_game_transport" name="storage" type="storage_node.py" output="screen">
       <param name="liability_node" value="/liability" />
-      <param name="stacker_node" value="/transport_goods/stacker_goods" />
+      <param name="stacker_node" value="/transport_goods/stacker_goods/stacker_goods" />
       <param name="warehouse_init_state" value="empty" /> <!-- "full" or "empty" -->
     </node>
   </group>

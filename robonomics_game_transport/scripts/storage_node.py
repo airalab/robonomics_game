@@ -25,47 +25,57 @@ class Storage:
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('storage', TransportAction, self.plan_job, auto_start=False)
         self._server.start()
-        rospy.logwarn('Storage action server ready')
+        rospy.logdebug('Storage.ActionServer ready')
 
-        self._jobs_proc_thread = threading.Thread(target=self._jobs_proc)
-        self._jobs_proc_thread.daemon = True
-        self._jobs_proc_thread.start()
+        self.finish = rospy.Publisher(liability_node + '/finish', String, queue_size=10)
+        rospy.logdebug('Storage.finish ready')
 
         self.warehouse = dict() # warehouses place service proxy
         for content in catalog:
+            rospy.logdebug('Storage.wh.%s starting' % content)
             rospy.wait_for_service('/warehouse/goods/' + content + '/place')
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/goods/' + content + '/place', WarehousePlace) })
+            rospy.logdebug('Storage.wh.%s place' % content)
             if warehouse_init_state == 'full':
                 rospy.wait_for_service('/warehouse/goods/' + content + '/fill_all')
+                rospy.logdebug('Storage.wh.%s.full' % content)
                 fill_srv = rospy.ServiceProxy('/warehouse/goods/' + content + '/fill_all', WarehouseFillAll)
                 fill_srv()
             elif warehouse_init_state == 'empty':
-                rospy.wait_for_service('/warehouse/goods/' + content + '/empty')
+                rospy.wait_for_service('/warehouse/goods/' + content + '/empty_all')
+                rospy.logdebug('Storage.wh.%s.empty' % content)
                 empty_srv = rospy.ServiceProxy('/warehouse/goods/' + content + '/empty_all', WarehouseEmptyAll)
                 empty_srv()
-        rospy.logwarn('Goods warehouse ready')
+            rospy.logdebug('Storage.wh.%s ready' % content)
+        rospy.logdebug('Storage.warehouse ready')
 
-        self.conveyor_load = rospy.ServiceProxy('/transport_goods/conveyor/load', ConveyorLoad)
-        self.conveyor_destination = rospy.ServiceProxy('/transport_goods/conveyor/destination', ConveyorDestination) # 'warehouse' or 'garbage'
-        rospy.logwarn('Goods conveyor ready')
+        rospy.wait_for_service('/transport_goods/conveyor/conveyor/load')
+        self.conveyor_load = rospy.ServiceProxy('/transport_goods/conveyor/conveyor/load', ConveyorLoad)
+        rospy.wait_for_service('/transport_goods/conveyor/conveyor/destination')
+        self.conveyor_destination = rospy.ServiceProxy('/transport_goods/conveyor/conveyor/destination', ConveyorDestination) # 'warehouse' or 'garbage'
+        rospy.logdebug('Goods conveyor proxy ready')
 
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
-        rospy.logwarn('Stacker client ready')
+        rospy.logdebug('Stacker client ready')
 
         def update_liability(msg):
             self.liability_address = msg.address
         rospy.Subscriber(liability_node + '/current', Liability, update_liability)
 
-        self.finish = rospy.Publisher(liability_node + '/finish', String, queue_size=10)
-
         self.current_gh = None
-        rospy.logwarn('Storage ready')
+
+        rospy.logdebug('Creating job_proc_thread')
+        self._jobs_proc_thread = threading.Thread(target=self._jobs_proc)
+        self._jobs_proc_thread.daemon = True
+        self._jobs_proc_thread.start()
+        rospy.logdebug('Storage ready')
 
     def spin(self):
         rospy.spin()
 
     def plan_job(self, job):
+        rospy.logdebug( 'Storage.plan_job: ' + str(job) )
         job.set_accepted()
         self.jobs_queue.put(job)
 
@@ -74,10 +84,12 @@ class Storage:
             if not self.jobs_queue.empty() and not self.busy:
                 self.busy = True
                 job = self.jobs_queue.get_nowait()
+                rospy.logdebug( 'Starting new job: ' + str(job) )
                 self.start_job(job)
             rospy.sleep(1)
 
     def start_job(self, job):
+        rospy.logdebug( 'Storage.start_job: ' + str(job) )
         result = TransportResult()
         try:
             goal = job.get_goal()
@@ -103,9 +115,7 @@ class Storage:
                 rospy.sleep(10) # wait until chunk throwed down, #TODO
                 job.set_succeeded(result)
         finally:
-            msg = String()
-            msg.data = self.liability_address
-            self.finish.publish(msg)
+            self.finish.publish(String(self.liability_address))
             self.busy = False
 
 if __name__ == '__main__':
