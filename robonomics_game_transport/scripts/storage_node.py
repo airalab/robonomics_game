@@ -25,6 +25,7 @@ class Storage:
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('storage', TransportAction, self.plan_job, auto_start=False)
         self._server.start()
+        rospy.logwarn('Storage action server ready')
 
         self._jobs_proc_thread = threading.Thread(target=self._jobs_proc)
         self._jobs_proc_thread.daemon = True
@@ -32,29 +33,34 @@ class Storage:
 
         self.warehouse = dict() # warehouses place service proxy
         for content in catalog:
+            rospy.wait_for_service('/warehouse/goods/' + content + '/place')
             self.warehouse.update({ content : rospy.ServiceProxy('/warehouse/goods/' + content + '/place', WarehousePlace) })
             if warehouse_init_state == 'full':
-                rospy.wait_for_service('/warehouse/raws/' + content + '/fill_all')
-                fill_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/fill_all', WarehouseFillAll)
+                rospy.wait_for_service('/warehouse/goods/' + content + '/fill_all')
+                fill_srv = rospy.ServiceProxy('/warehouse/goods/' + content + '/fill_all', WarehouseFillAll)
                 fill_srv()
             elif warehouse_init_state == 'empty':
-                rospy.wait_for_service('/warehouse/raws/' + content + '/empty')
-                empty_srv = rospy.ServiceProxy('/warehouse/raws/' + content + '/empty_all', WarehouseEmptyAll)
+                rospy.wait_for_service('/warehouse/goods/' + content + '/empty')
+                empty_srv = rospy.ServiceProxy('/warehouse/goods/' + content + '/empty_all', WarehouseEmptyAll)
                 empty_srv()
+        rospy.logwarn('Goods warehouse ready')
 
         self.conveyor_load = rospy.ServiceProxy('/transport_goods/conveyor/load', ConveyorLoad)
         self.conveyor_destination = rospy.ServiceProxy('/transport_goods/conveyor/destination', ConveyorDestination) # 'warehouse' or 'garbage'
+        rospy.logwarn('Goods conveyor ready')
 
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
+        rospy.logwarn('Stacker client ready')
 
         def update_liability(msg):
             self.liability_address = msg.address
         rospy.Subscriber(liability_node + '/current', Liability, update_liability)
 
-        self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
+        self.finish = rospy.Publisher(liability_node + '/finish', String, queue_size=10)
 
         self.current_gh = None
+        rospy.logwarn('Storage ready')
 
     def spin(self):
         rospy.spin()

@@ -38,11 +38,13 @@ if __name__ == '__main__':
     opcua = OpcuaClient(opcua_client_node, opcua_endpoint)
     opcua_ns = opcua_server_namespace
 
+    rospy.logdebug('Color senspr node started')
+
     # advertise color
     pub = rospy.Publisher('color', String, queue_size=2)
-    rate = rospy.Rate(1)  # 1 Hz
     while not rospy.is_shutdown():
         color_code = opcua.read_data(opcua_ns + '/DetectedColor')
         color = code_to_color(color_code)
+        rospy.logdebug( 'New color: ' + str(color) )
         pub.publish(color)
-        rate.sleep()
+        rospy.sleep(1)
