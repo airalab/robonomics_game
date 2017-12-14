@@ -14,7 +14,9 @@ import rospy, json
 from .supply_chain import SupplyChain
 from actionlib import ActionClient
 from actionlib_msgs.msg import GoalStatus
+from robonomics_liability.msg import Liability
 from robonomics_game_plant.msg import OrderAction as PlantAction, OrderGoal as PlantGoal 
+from robonomics_game_plant.srv import Unload as PlantUnload
 
 supplier_market = ''
 storage_market = ''
@@ -72,6 +74,8 @@ class Supply(SupplyChain):
         self.plant = ActionClient(self.plant_node, PlantAction)
         self.plant.wait_for_server()
         self.plant_gh = None
+        rospy.wait_for_service(self.plant_node + '/unload')
+        self.unload = rospy.ServiceProxy(self.plant_node + '/unload', PlantUnload)
 
         self._orders_proc_thread = threading.Thread(target=self._orders_proc)
         self._orders_proc_thread.daemon = True
@@ -110,9 +114,12 @@ class Supply(SupplyChain):
         self.plant_gh = self.plant.send_goal( PlantGoal(specification=order) )
         while not rospy.is_shutdown(): # wait until plant complete its job
             if self.plant_gh.get_goal_status() < 2:
+                rospy.logdebug( 'Goal status: ' + str(self.plant_gh.get_goal_status()) )
                 rospy.sleep(1)
             else:
                 break
+        self.unload()
+        rospy.sleep(5)
         result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(self.plant_gh.get_terminal_state())
         rospy.logdebug(result)
         msg = String()
