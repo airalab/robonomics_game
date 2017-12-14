@@ -18,7 +18,7 @@ class Conveyor:
                  ):
         self.opcua = OpcuaClient(opcua_client_node, opcua_endpoint)
         self.opcua_ns = opcua_server_namespace
-
+        rospy.logwarn('Conveyor OPC UA client ready')
         #self.opcua.write(self.opcua_ns + '/Settings/Tr_load_time', 'uint16', tr_load_time)
         #self.opcua.write(self.opcua_ns + '/Settings/Tr_unload_time', 'uint16', tr_unload_time)
         #self.opcua.write(self.opcua_ns + '/Settings/Tr_timeout', 'uint16', tr_timeout)
@@ -27,6 +27,7 @@ class Conveyor:
         self.opcua.write(self.opcua_ns + '/Destination', 'bool', False) # to warehouse by default
         for i in range(1, 5): # disable conveyors
             self.opcua.write(self.opcua_ns + '/LoadTR' + str(i), 'bool', False)
+        rospy.logwarn('Conveyor zero state')
 
         self._state_updater_thread = threading.Thread(target=self._state_updater)
         self._state_updater_thread.daemon = True
@@ -34,9 +35,12 @@ class Conveyor:
 
         rospy.Service('~destination', ConveyorDestination, self.set_destination) # set items destination
         rospy.Service('~load', ConveyorLoad, self.load)
-
-        rospy.logwarn('Disable: ' + str(self.disable()))
+        
+        self.opcua.write(self.opcua_ns + '/Enable', 'bool', True)
         rospy.loginfo('Conveyor ready')
+
+    def spin(self):
+        rospy.spin()
 
     def enable(self):
         response = self.opcua.write(self.opcua_ns + '/Enable', 'bool', True)
@@ -47,7 +51,7 @@ class Conveyor:
         return response.success
 
     def disable(self):
-        response = self.opcua.write(self.opcua_ns + '/Enable', 'bool', True)
+        response = self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
         if response.success:
             rospy.loginfo('Converyor disabled')
         else:
@@ -78,6 +82,7 @@ class Conveyor:
         while not rospy.is_shutdown():
             for i in range(0, 4): # from 1st to 4th rotary conveyor
                 state = self.opcua.read_data(self.opcua_ns + '/StateTR' + str(i+1))
+                rospy.logdebug( 'New conveyor state: ' + str(state) )
                 if state in range(0, 9):
                     self.state[i] = state
                 else:
@@ -105,8 +110,4 @@ if __name__ == '__main__':
     tr_timeout = rospy.get_param('tr_timeout', 5000)
     tl_unload_time = rospy.get_param('tl_unload_time', 2000)
 
-    conveyor = Conveyor(opcua_client_node, opcua_endpoint, opcua_server_namespace, 
-                        tr_load_time, tr_unload_time, tr_timeout, tl_unload_time)
-    conveyor.enable()
-    rospy.on_shutdown(conveyor.disable)
-    rospy.spin()
+    Conveyor(opcua_client_node, opcua_endpoint, opcua_server_namespace, tr_load_time, tr_unload_time, tr_timeout, tl_unload_time).spin()
