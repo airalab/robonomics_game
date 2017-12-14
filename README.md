@@ -1,4 +1,8 @@
 # Robonomics Game
+
+[![Build Status](https://travis-ci.org/airalab/robonomics_game.svg?branch=master)](https://travis-ci.org/airalab/robonomics_game)
+![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)
+
 for Airalab Industry 4.0 testbed
 
 [3D model visualization on YouTube](https://youtu.be/sFSC-9TZYOY)
