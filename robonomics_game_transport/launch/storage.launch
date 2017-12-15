@@ -67,4 +67,7 @@
       <param name="warehouse_init_state" value="empty" /> <!-- "full" or "empty" -->
     </node>
   </group>
+
+  <include file="$(find robonomics_market)/launch/market.launch" />
+  <include file="$(find robonomics_liability)/launch/liability.launch" />
 </launch>
