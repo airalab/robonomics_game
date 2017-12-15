@@ -68,7 +68,7 @@ class Supply(SupplyChain):
     def __init__(self):
         SupplyChain.__init__(self)
 
-        self.addr = 1
+        self.addr = rospy.get_param('~plant_addr')
 
         self.plant_node = rospy.get_param('~plant_node')
         self.plant = ActionClient(self.plant_node, PlantAction)
