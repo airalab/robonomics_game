@@ -1,6 +1,7 @@
 <launch>
   <include file="$(find robonomics_control)/launch/control.launch" />
   <include file="$(find robonomics_liability)/launch/liability.launch" />
+  <include file="$(find robonomics_market)/launch/market.launch" />
 
   <node ns="opcua" name="opcua_client" pkg="ros_opcua_impl_freeopcua" type="client_node" output="screen" />
 
@@ -17,7 +18,5 @@
       <param name="plant_node" value="plant" />
       <param name="plant_addr" value="2" />
     </node>
-
-    <include file="$(find robonomics_market)/launch/market.launch" />
   </group>
 </launch>
