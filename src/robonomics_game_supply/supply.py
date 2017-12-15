@@ -96,7 +96,7 @@ class Supply(SupplyChain):
 
     def prepare(self, objective):
         rospy.logdebug('Supply.prepare: ' + objective)
-        self.ask(10, 1, supplier_market, supplier[objective][self.addr], 1, 50) 
+        self.ask(10, 1, supplier_market, supplier[objective][self.addr-1], 1, 50)
 
     def task(self, objective):
         rospy.logdebug('Supply.task: ' + objective)
@@ -129,4 +129,4 @@ class Supply(SupplyChain):
 
     def finalize(self, objective):
         rospy.logdebug('Supply.finalize: ' + objective)
-        self.ask(10, 1, storage_market, storage[objective][self.addr], 1, 50) 
+        self.ask(10, 1, storage_market, storage[objective][self.addr-1], 1, 50)
