@@ -99,7 +99,7 @@ class Storage:
                 self.conveyor_destination('warehouse')
                 self.conveyor_load(goal.address) # plant must already wait for low level unload premission
                 rospy.logdebug( 'Address: ' + str(goal.address) )
-                rospy.sleep(20) # wait until chunk comes to the 5th conveyor, #TODO
+                rospy.sleep(120) # wait until chunk comes to the 5th conveyor, #TODO
                 self.current_gh = self.stacker.send_goal( StackerGoal([12, 1,  cell.x, cell.z]) ) # [12, 1] is conveyor
                 while not rospy.is_shutdown(): # wait for stacker complete its job
                     if self.current_gh.get_goal_status() < 2: # actionlib_msgs/GoalStatus
@@ -112,7 +112,7 @@ class Storage:
                 self.conveyor_destination('garbage')
                 self.conveyor_load(goal.address)
                 result.act = 'Place for %s is not available. Throwing to garbage.' % color
-                rospy.sleep(10) # wait until chunk throwed down, #TODO
+                rospy.sleep(100) # wait until chunk throwed down, #TODO
                 job.set_succeeded(result)
         finally:
             self.finish.publish(String(self.liability_address))
