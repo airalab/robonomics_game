@@ -5,7 +5,7 @@ from std_msgs.msg import String
 import rospy
 
 class SupplyChain:
-    current_market = ""
+    current_market = 'QmfCcLKrTCuXsf6bHbVupVv4zsbs6kjqTQ7DRftGqMLjdW' # Default medical market
 
     def __init__(self):
         rospy.init_node('supply_chain', anonymous=True, log_level=rospy.DEBUG)
