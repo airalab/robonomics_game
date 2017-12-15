@@ -26,7 +26,7 @@ class SupplyChain:
             self.task(msg.data)
             self.finalize(msg.data)
             self.make_bids()
-        rospy.Subscriber('run', String, run)
+        rospy.Subscriber('/run', String, run)
 
         rospy.logdebug('Supply chain node started')
 
