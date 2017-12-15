@@ -29,10 +29,10 @@
   </group>
 
   <group ns="transport_goods">
-    <param name="opcua_client_node" value="opcua/opcua_client" />
-
     <group ns="stacker_goods">
       <node ns="opcua" name="opcua_client" pkg="ros_opcua_impl_freeopcua" type="client_node" output="screen" />
+      <param name="opcua_client_node" value="opcua/opcua_client" />
+
       <node pkg="robonomics_game_transport" name="stacker_goods" type="stacker_node.py" output="screen">
         <param name="opcua_endpoint" value="opc.tcp://192.168.10.3:53880/" />
         <param name="opcua_server_namespace" value="ns=3;s=/Airalab/StackerGoods" />
@@ -43,6 +43,8 @@
 
     <group ns="conveyor">
       <node ns="opcua" name="opcua_client" pkg="ros_opcua_impl_freeopcua" type="client_node" output="screen" />
+      <param name="opcua_client_node" value="opcua/opcua_client" />
+
       <node pkg="robonomics_game_transport" name="conveyor" type="conveyor_node.py" output="screen">
         <param name="opcua_endpoint" value="opc.tcp://192.168.10.3:53880/" />
         <param name="opcua_server_namespace" value="ns=3;s=/Airalab/Conveyor" />
@@ -55,6 +57,8 @@
 
     <group ns="sensor">
       <node ns="opcua" name="opcua_client" pkg="ros_opcua_impl_freeopcua" type="client_node" output="screen" />
+      <param name="opcua_client_node" value="opcua/opcua_client" />
+
       <node pkg="robonomics_game_transport" name="sensor" type="color_sensor_node.py" output="screen">
         <param name="opcua_endpoint" value="opc.tcp://192.168.10.3:53880/" />
         <param name="opcua_server_namespace" value="ns=3;s=/Airalab/Sensor" />
