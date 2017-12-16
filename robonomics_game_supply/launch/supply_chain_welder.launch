@@ -15,7 +15,7 @@
 
     <node pkg="robonomics_game_supply" type="supply_node" name="supply_chain" output="screen">
       <param name="liability_node" value="/liability" />
-      <param name="plant_node" value="plant" />
+      <param name="plant_node" value="/welder/plant" />
       <param name="plant_addr" value="1" />
     </node>
   </group>
