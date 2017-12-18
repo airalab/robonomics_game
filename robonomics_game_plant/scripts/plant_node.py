@@ -63,7 +63,12 @@ class Plant:
 
         # unload signal service
         rospy.Service('~unload', Unload, self.unload)
-    
+
+        rospy.logdebug( 'Plant started with ActionServer: ' + name + ', '
+                        'opcua_client_node: ' + opcua_client_node + ', '
+                        'opcua_endpoint: ' + opcua_endpoint + ', '
+                        'opcua_server_namespace: ' + opcua_server_namespace)
+ 
     def spin(self):
         rospy.spin()
 
@@ -154,7 +159,7 @@ class Plant:
         rospy.logdebug('Unloading...')
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
         rospy.sleep(2)
-        self.opcua.write('ns=3;s=/Airalab/Plant1/Unload', 'bool', True)
+        self.opcua.write(self.opcua_ns + '/Unload', 'bool', True)
         rospy.sleep(10) # wait for unload by conveyor
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
         self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
