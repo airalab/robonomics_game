@@ -37,8 +37,7 @@ class Plant:
         rospy.logdebug('Starting ActionServer with name: ' + name)
         self.name = name
         self._server = actionlib.ActionServer(name, OrderAction, self.plan_job, auto_start=False)
-        self._server.start()
-
+        self._server.start() 
         # queue goals from action server and proc them in separate thread
         rospy.logdebug('Starting orders proc thread')
         self._orders_proc_thread = threading.Thread(target=self._orders_proc)
@@ -110,15 +109,16 @@ class Plant:
             rospy.sleep(1)
 
     def start_job(self, order):
+        rospy.logdebug('Self.start_job')
         self.enable()  # enable plant to start the job, returns with (state != 0)
         state_prev = 0
         rospy.sleep(2)
-        rospy.logdebug('Staring new job')
-        while self.state in [0, 9]:  # publish changing feedback while order in proc
-            if self.state != state_prev:
+        while self.state not in [0, 10]:  # while order in proc (state not DISABLE or UNLOAD)
+            rospy.logdebug('Job in progress, state: %d' % self.state)
+            if self.state != state_prev:  # [1..9] means work
                 feedback = OrderFeedback()
                 feedback.status = str(self.state)
-                order.publish_feedback(feedback)
+                order.publish_feedback(feedback) # publish state as feedback
                 state_prev = self.state
             if self.state == -1 or self.state == 11:  # abort order if something go wrong
                 result = OrderResult()
@@ -127,13 +127,13 @@ class Plant:
                 self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
                 return
             rospy.sleep(1)
-        # Reset for a next rising edge
-        # self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+        rospy.logdebug('Job complete, state: %d' % self.state)
         result = OrderResult()
         result.act = 'Order %s %s complete' % (str(order.get_goal_id()), str(order.get_goal()))
         order.set_succeeded(result)
 
     def enable(self):
+        rospy.logdebug('Plant.enable')
         """
         Minimum call period is (HandleTime + 2*UnloadTime)
         Each call period timeout will be ignored
