@@ -25,24 +25,30 @@ class Plant:
                  handle_time,  # ms, detail processing time
                  timeout  # ms, proximity sensors and communication response timeout
                  ):
-        # connect to OPC-UA Server using ros opcua client
-        rospy.logdebug('Connecting to OPC UA endpoint: ' + opcua_endpoint)
 
-        # connect to opcua client
+        # connect to OPC-UA Server using ros opcua client
+        rospy.logdebug('Connecting to OPC UA endpoint: ' + opcua_endpoint + ', '
+                       'ros_opcua client node: ' + opcua_client_node + ', '
+                       'OPC UA namespace: ' + opcua_server_namespace + ', ')
         self.opcua = OpcuaClient(opcua_client_node, opcua_endpoint)  # ros opcua client read/write interface
         self.opcua_ns = opcua_server_namespace
 
         # prepare plant action server
+        rospy.logdebug('Starting ActionServer with name: ' + name)
         self.name = name
         self._server = actionlib.ActionServer(name, OrderAction, self.plan_job, auto_start=False)
         self._server.start()
 
         # queue goals from action server and proc them in separate thread
+        rospy.logdebug('Starting orders proc thread')
         self._orders_proc_thread = threading.Thread(target=self._orders_proc)
         self._orders_proc_thread.daemon = True
         self._orders_proc_thread.start()
 
         # load plant parameters to opcua server
+        rospy.logdebug('Loading parameters to OPC UA server: '
+                       'unload_time %d, handle_time %d, timeout %d'
+                        % (unload_time, handle_time, timeout) )
         self._unload_time = unload_time
         self._handle_time = handle_time
         self._timeout = timeout  # ms, proximity sensors and communication timeout
@@ -57,17 +63,23 @@ class Plant:
             rospy.signal_shutdown(e)
 
         # update plant state in separate thread
+        rospy.logdebug('Starting state updater thread')
         self._state_updater_thread = threading.Thread(target=self._state_updater)
         self._state_updater_thread.daemon = True
         self._state_updater_thread.start()
 
         # unload signal service
+        rospy.logdebug('Creating Unload service')
         rospy.Service('~unload', Unload, self.unload)
 
-        rospy.logdebug( 'Plant started with ActionServer: ' + name + ', '
-                        'opcua_client_node: ' + opcua_client_node + ', '
-                        'opcua_endpoint: ' + opcua_endpoint + ', '
-                        'opcua_server_namespace: ' + opcua_server_namespace)
+        rospy.logdebug('Reseting OPC UA signals')
+        self.reset()
+        rospy.logdebug('Plant %s ready' % name)
+
+    def reset(self):
+        rospy.logdebug('Plant.reset')
+        self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+        self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
  
     def spin(self):
         rospy.spin()
@@ -102,14 +114,14 @@ class Plant:
         state_prev = 0
         rospy.sleep(2)
         rospy.logdebug('Staring new job')
-        while self.state not in [0, 9]:  # publish changing feedback while order in proc
+        while self.state in [0, 9]:  # publish changing feedback while order in proc
             if self.state != state_prev:
                 feedback = OrderFeedback()
                 feedback.status = str(self.state)
                 order.publish_feedback(feedback)
                 state_prev = self.state
             if self.state == -1 or self.state == 11:  # abort order if something go wrong
-                reslt = OrderResult()
+                result = OrderResult()
                 result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
                 order.set_aborted(result)
                 self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
