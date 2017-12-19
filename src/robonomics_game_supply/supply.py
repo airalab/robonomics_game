@@ -118,6 +118,7 @@ class Supply(SupplyChain):
                 rospy.sleep(1)
             else:
                 break
+        rospy.logdebug( 'Goal complete, status: ' + str(self.plant_gh.get_goal_status()) )
         self.unload()
         rospy.sleep(5)
         result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(self.plant_gh.get_terminal_state())
