@@ -12,7 +12,8 @@ import actionlib
 import ros_opcua_srvs.srv as ros_opcua
 from robonomics_game_plant.msg import OrderAction, OrderFeedback, OrderResult
 from robonomics_game_plant.srv import Unload, UnloadResponse
-from opcua_client import OpcuaClient
+from opcua_client import OpcuaClient 
+
 
 class Plant:
     name = ''
@@ -110,9 +111,15 @@ class Plant:
 
     def start_job(self, order):
         rospy.logdebug('Self.start_job')
-        self.enable()  # enable plant to start the job, returns with (state != 0)
+        result = OrderResult()
+        enabled = self.enable()  # enable plant to start the job, returns with (state != 0)
+        if not enabled:
+            result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
+            order.set_aborted(result)
+            self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+            return
         state_prev = 0
-        rospy.sleep(2)
+        rospy.sleep(5) # let plant update actual state
         while self.state not in [0, 10]:  # while order in proc (state not DISABLE or UNLOAD)
             rospy.logdebug('Job in progress, state: %d' % self.state)
             if self.state != state_prev:  # [1..9] means work
@@ -121,14 +128,12 @@ class Plant:
                 order.publish_feedback(feedback) # publish state as feedback
                 state_prev = self.state
             if self.state == -1 or self.state == 11:  # abort order if something go wrong
-                result = OrderResult()
                 result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
                 order.set_aborted(result)
                 self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
                 return
             rospy.sleep(1)
         rospy.logdebug('Job complete, state: %d' % self.state)
-        result = OrderResult()
         result.act = 'Order %s %s complete' % (str(order.get_goal_id()), str(order.get_goal()))
         order.set_succeeded(result)
 
@@ -148,7 +153,7 @@ class Plant:
                 response = self.opcua.read(self.opcua_ns + '/Enable')
                 if not response.success:
                     rospy.logerr('Enable request not successful')
-                    return
+                    return False
                 if response.data.bool_d is True:
                     rospy.logerr('Plant enabled without node call. Reseting enable signal')
                     self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
@@ -159,13 +164,14 @@ class Plant:
                 while self.state <= 0:  # undefined or disabled
                     if time.time() * 1000 - t > self._timeout:
                         rospy.logerr('Plant enable timeout.')
-                        return
+                        return False
                     time.sleep(1)
             except rospy.ServiceException as e:
                 rospy.logerr('Exception raised while OPC-UA request: %s' % e)
         else:
             rospy.logwarn('Order run attempt after %d sec from the last run ingnored.'
                           'Minium run period: %d sec.' % (now - last, period))
+        return True
 
     def unload(self, request):
         rospy.logdebug('Unloading...')
