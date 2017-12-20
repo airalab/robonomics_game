@@ -202,7 +202,7 @@ class Plant:
             time.sleep(1)
 
 if __name__ == '__main__':
-    rospy.init_node('plant')
+    rospy.init_node('plant', log_level=rospy.DEBUG)
     node_name = rospy.get_name()
 
     opcua_endpoint= rospy.get_param('~opcua_endpoint')
@@ -222,6 +222,6 @@ if __name__ == '__main__':
 
     unload_time = rospy.get_param('~unload_time', 2000)
     handle_time = rospy.get_param('~handle_time', 2000)
-    timeout = rospy.get_param('~timeout', 5000)
+    timeout = rospy.get_param('~timeout', 10000)
 
     Plant(node_name, opcua_client_node, opcua_endpoint, opcua_server_namespace, unload_time, handle_time, timeout).spin()
