@@ -120,14 +120,14 @@ class Plant:
             return
         state_prev = 0
         rospy.sleep(5) # let plant update actual state
-        while self.state not in [0, 10, 11]:  # while order in proc (state not DISABLE or UNLOAD)
+        while self.state not in [0, 9, 10, 11]:  # while order in proc (state not DISABLE or after UNLOAD)
             rospy.logdebug('Job in progress, state: %d' % self.state)
             if self.state != state_prev:  # [1..9] means work
                 feedback = OrderFeedback()
                 feedback.status = str(self.state)
                 order.publish_feedback(feedback) # publish state as feedback
                 state_prev = self.state
-            if self.state == -1 or self.state > 99:  # abort order if something go wrong
+            if rospy.is_shutdown() or self.state == -1 or self.state > 99:  # abort order if something go wrong
                 result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
                 order.set_aborted(result)
                 self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
@@ -185,7 +185,7 @@ class Plant:
                 break
             rospy.sleep(1)
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
-        self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+        self.opcua.write(self.opcua_ns + '/Enable', 'bool', False) # state "0", start next job
         rospy.logdebug('Unloading complete. Disabled for next order')
         return UnloadResponse()
 
