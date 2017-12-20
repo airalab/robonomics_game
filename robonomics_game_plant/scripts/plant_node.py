@@ -92,9 +92,9 @@ class Plant:
                 'Queueing orders until connection establish')
         elif self.state == 0:  # disabled
             pass
-        elif self.state in range(1, 11):
+        elif self.state in range(1, 12):
             rospy.loginfo('Plant busy. Queuing new order')
-        elif self.state == 11:
+        elif self.state == 100:
             rospy.logwarn('Plant FAULT. Queueing orders until fault reset')
         else:
             raise ValueError('Plant state value: %s deprecated' % str(self.state))
@@ -120,14 +120,14 @@ class Plant:
             return
         state_prev = 0
         rospy.sleep(5) # let plant update actual state
-        while self.state not in [0, 10]:  # while order in proc (state not DISABLE or UNLOAD)
+        while self.state not in [0, 10, 11]:  # while order in proc (state not DISABLE or UNLOAD)
             rospy.logdebug('Job in progress, state: %d' % self.state)
             if self.state != state_prev:  # [1..9] means work
                 feedback = OrderFeedback()
                 feedback.status = str(self.state)
                 order.publish_feedback(feedback) # publish state as feedback
                 state_prev = self.state
-            if self.state == -1 or self.state == 11:  # abort order if something go wrong
+            if self.state == -1 or self.state > 99:  # abort order if something go wrong
                 result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
                 order.set_aborted(result)
                 self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
@@ -178,10 +178,15 @@ class Plant:
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
         rospy.sleep(2)
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', True)
-        rospy.sleep(10) # wait for unload by conveyor
+        while not rospy.is_shutdown(): # wait for unloaded state
+            rospy.logdebug('Waiting for unload...')
+            if self.state == 11: # Unloaded
+                rospy.logdebug('Unloaded')
+                break
+            rospy.sleep(1)
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
         self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
-        rospy.logdebug('Unloaded')
+        rospy.logdebug('Unloading complete. Disabled for next order')
         return UnloadResponse()
 
     def _state_updater(self):
