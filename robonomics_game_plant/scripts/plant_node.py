@@ -172,10 +172,11 @@ class Plant:
                        rospy.logerr('Plant enable timeout.')
                        return False
                    time.sleep(1)
+                response.success = False
                 while not response.success: # try hard until it finally read
                     response = self.opcua.read(self.opcua_ns + '/Enable')
                     rospy.sleep(1)
-                return response.data.bool_d
+                return response.data.bool_d # True if enabled, False it not enabled
             except rospy.ServiceException as e:
                 rospy.logerr('Exception raised while OPC-UA request: %s' % e)
         else:
