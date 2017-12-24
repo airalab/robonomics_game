@@ -194,6 +194,9 @@ class Plant:
             if self.state == 11: # Unloaded
                 rospy.logdebug('Unloaded')
                 break
+            if self.state == 0:
+                rospy.logdebug('Turned off while unloading')
+                break
             rospy.sleep(1)
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
         self.opcua.write(self.opcua_ns + '/Enable', 'bool', False) # state "0", start next job
