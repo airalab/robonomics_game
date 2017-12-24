@@ -10,7 +10,7 @@ import re
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from std_msgs.msg import String
+from std_srvs.srv import Empty
 from robonomics_liability.msg import Liability
 from robonomics_game_warehouse.srv import Order as WarehouseOrder, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
@@ -19,7 +19,6 @@ from robonomics_game_transport.msg import StackerAction, StackerGoal
 class Supplier:
     busy = False
     jobs_queue = Queue()
-    liability_address = ''
 
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('supplier', TransportAction, self.plan_job, auto_start=False)
@@ -44,13 +43,12 @@ class Supplier:
         self.stacker = actionlib.ActionClient(stacker_node, StackerAction)
         self.stacker.wait_for_server()
 
-        def update_liability(msg):
-            self.liability_address = msg.address
-        rospy.Subscriber(liability_node + '/current', Liability, update_liability)
-
-        self.finish = rospy.Publisher(liability_node + '/finish', String, queue_size=10)
+        rospy.wait_for_service(liability_node +'/finish')
+        self.finish = rospy.ServiceProxy(liability_node + '/finish', Empty)
 
         self.current_gh = None
+        
+        rospy.logdebug('Supplier node initialized')
 
     def spin(self):
         rospy.spin()
@@ -87,9 +85,7 @@ class Supplier:
                 job.set_aborted(result)
                 rospy.logdebug('Job aborted')
         finally:
-            msg = String()
-            msg.data = self.liability_address
-            self.finish.publish(msg)
+            self.finish()
             self.busy = False
 
 if __name__ == '__main__':
