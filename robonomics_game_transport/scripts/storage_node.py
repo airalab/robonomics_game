@@ -10,7 +10,7 @@ import re
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from std_msgs.msg import String
+from std_srvs.srv import Empty
 from robonomics_liability.msg import Liability
 from robonomics_game_warehouse.srv import Place as WarehousePlace, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.srv import ConveyorLoad, ConveyorDestination
@@ -20,14 +20,14 @@ from robonomics_game_transport.msg import StackerAction, StackerGoal
 class Storage:
     busy = False
     jobs_queue = Queue()
-    liability_address = ''
 
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('storage', TransportAction, self.plan_job, auto_start=False)
         self._server.start()
         rospy.logdebug('Storage.ActionServer ready')
 
-        self.finish = rospy.Publisher(liability_node + '/finish', String, queue_size=10)
+        rospy.wait_for_service(liability_node + '/finish')
+        self.finish = rospy.ServiceProxy(liability_node + '/finish', Empty)
         rospy.logdebug('Storage.finish ready')
 
         self.warehouse = dict() # warehouses place service proxy
@@ -59,17 +59,14 @@ class Storage:
         self.stacker.wait_for_server()
         rospy.logdebug('Stacker client ready')
 
-        def update_liability(msg):
-            self.liability_address = msg.address
-        rospy.Subscriber(liability_node + '/current', Liability, update_liability)
-
         self.current_gh = None
 
         rospy.logdebug('Creating job_proc_thread')
         self._jobs_proc_thread = threading.Thread(target=self._jobs_proc)
         self._jobs_proc_thread.daemon = True
         self._jobs_proc_thread.start()
-        rospy.logdebug('Storage ready')
+
+        rospy.logdebug('Storage node initialized')
 
     def spin(self):
         rospy.spin()
@@ -115,7 +112,7 @@ class Storage:
                 rospy.sleep(100) # wait until chunk throwed down, #TODO
                 job.set_succeeded(result)
         finally:
-            self.finish.publish(String(self.liability_address))
+            self.finish()
             self.busy = False
 
 if __name__ == '__main__':
