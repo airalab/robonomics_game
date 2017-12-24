@@ -112,12 +112,14 @@ class Plant:
     def start_job(self, order):
         rospy.logdebug('Self.start_job')
         result = OrderResult()
-        enabled = self.enable()  # enable plant to start the job, returns with (state != 0)
-        if not enabled:
-            result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
-            order.set_aborted(result)
-            self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
-            return
+        enabled = False
+        while not enabled:
+            enabled = self.enable() # enable plant to start the job, returns with (state != 0)
+        # if not enabled:
+        #    result.act = 'Order %s %s aborted' % ( str(order.get_goal_id()), str(order.get_goal()) )
+        #    order.set_aborted(result)
+        #    self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+        #    return
         state_prev = 0
         rospy.sleep(5) # let plant update actual state
         while self.state not in [0, 9, 10, 11]:  # while order in proc (state not DISABLE or after UNLOAD)
@@ -145,33 +147,42 @@ class Plant:
         """
         now = int(round(time.time() * 1000))  # ms
         last = self._last_enable_time
-        period = self._handle_time + 2 * self._unload_time
+        # period = self._handle_time + 2 * self._unload_time
+        period = 1000
         if now > last + period:
             self._last_enable_time = now
             try:
                 # Rising edge enables plant, check LOW state first
                 response = self.opcua.read(self.opcua_ns + '/Enable')
-                if not response.success:
-                    rospy.logerr('Enable request not successful')
-                    return False
+                # if not response.success:
+                #    rospy.logerr('Enable request not successful')
+                #    return False
                 if response.data.bool_d is True:
                     rospy.logerr('Plant enabled without node call. Reseting enable signal')
                     self.opcua.write(self.opcua_ns + '/Enable', 'bool', False)
+                    rospy.sleep(2)
+                response.success = False
+                while not response.success: # try hard until it finally enables
+                    response = self.opcua.write(self.opcua_ns + '/Enable', 'bool', True)
                     rospy.sleep(1)
-                response = self.opcua.write(self.opcua_ns + '/Enable', 'bool', True)
                 # ensure PLC starts the order checking state is not undefined or off
                 t = time.time() * 1000  # ms
                 while self.state <= 0:  # undefined or disabled
-                    if time.time() * 1000 - t > self._timeout:
-                        rospy.logerr('Plant enable timeout.')
-                        return False
-                    time.sleep(1)
+                   if time.time() * 1000 - t > self._timeout:
+                       rospy.logerr('Plant enable timeout.')
+                       return False
+                   time.sleep(1)
+                response.success = False
+                while not response.success: # try hard until it finally read
+                    response = self.opcua.read(self.opcua_ns + '/Enable')
+                    rospy.sleep(1)
+                return response.data.bool_d # True if enabled, False it not enabled
             except rospy.ServiceException as e:
                 rospy.logerr('Exception raised while OPC-UA request: %s' % e)
         else:
             rospy.logwarn('Order run attempt after %d sec from the last run ingnored.'
                           'Minium run period: %d sec.' % (now - last, period))
-        return True
+        return False
 
     def unload(self, request):
         rospy.logdebug('Unloading...')
@@ -182,6 +193,9 @@ class Plant:
             rospy.logdebug('Waiting for unload...')
             if self.state == 11: # Unloaded
                 rospy.logdebug('Unloaded')
+                break
+            if self.state == 0:
+                rospy.logdebug('Turned off while unloading')
                 break
             rospy.sleep(1)
         self.opcua.write(self.opcua_ns + '/Unload', 'bool', False)
