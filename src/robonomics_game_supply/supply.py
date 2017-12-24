@@ -10,6 +10,7 @@ else:
     from queue import Queue
 import threading
 from std_msgs.msg import String
+from std_srvs.srv import Empty
 import rospy, json
 from .supply_chain import SupplyChain
 from actionlib import ActionClient
@@ -20,6 +21,8 @@ from robonomics_game_plant.srv import Unload as PlantUnload
 
 supplier_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz4'
 storage_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz5'
+#supplier_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz6'
+#storage_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz7'
 
 supplier = {
     'blue': [ 'Qmda9BiBqyJoqHWis1VV7UbLLnhp1xk9gMMMQV7qcP4poT'
@@ -81,11 +84,10 @@ class Supply(SupplyChain):
         self._orders_proc_thread.daemon = True
         self._orders_proc_thread.start()
         
-        liability_node = rospy.get_param('~liability_node')
-        def update_liability(msg):
-            self.liability_address = msg.address
-        rospy.Subscriber(liability_node + '/current', Liability, update_liability)
-        self.finish = rospy.Publisher('/liability/finish', String, queue_size=10)
+        rospy.wait_for_service('/liability/finish')
+        self.finish = rospy.ServiceProxy('/liability/finish', Empty)
+
+        rospy.logdebug('Supply chain node ready')
 
     def spin(self):
         '''
@@ -123,9 +125,7 @@ class Supply(SupplyChain):
         rospy.sleep(5)
         result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(self.plant_gh.get_terminal_state())
         rospy.logdebug(result)
-        msg = String()
-        msg.data = self.liability_address
-        self.finish.publish(msg)
+        self.finish()
         self.plant_gh = None
 
     def finalize(self, objective):
