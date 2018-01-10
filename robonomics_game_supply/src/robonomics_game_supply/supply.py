@@ -105,13 +105,13 @@ class Supply(SupplyChain):
             else:
                 break
         rospy.logdebug( 'Goal complete, status: ' + str(plant_gh.get_goal_status()) )
-        self.unload()
-        rospy.sleep(5)
-        result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(plant_gh.get_terminal_state())
-        rospy.logdebug(result)
-        self.finish()
         plant_gh = None
 
     def finalize(self, objective):
         rospy.logdebug('Supply.finalize: ' + objective)
         self.ask(10, 1, storage_market, storage[objective][self.addr-1], 1, 50)
+        self.unload()
+        rospy.sleep(5)
+        result = 'Order: ' + order + ', result: ' + GoalStatus.to_string(plant_gh.get_terminal_state())
+        rospy.logdebug(result)
+        self.finish()
