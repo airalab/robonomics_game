@@ -95,11 +95,12 @@ class Stacker:
         source = job.get_goal().job[0:2]
         destination = job.get_goal().job[2:4]
         result = StackerResult()
-        move = self.move(source, destination)
-        if not move:
-            result.act = 'Job %s %s aborted' % (str(job.get_goal_id()), str(job.get_goal()))
-            job.set_aborted(result)
-            return
+        self.move(source, destination)
+        # move = self.move(source, destination)
+        # if not move:
+        #    result.act = 'Job %s %s aborted' % (str(job.get_goal_id()), str(job.get_goal()))
+        #    job.set_aborted(result)
+        #    return
         rospy.sleep(1)  # time to update state
         state_prev = 0
         rate = rospy.Rate(1)  # Hz
@@ -120,7 +121,7 @@ class Stacker:
         job.set_succeeded(result)
 
     def move(self, source, destination):
-        rospy.logdebug('Move from: ' + str(source) + ' to: ' + str(destination))
+        rospy.loginfo('Move from: ' + str(source) + ' to: ' + str(destination))
         success = True
         response = []
         response.append(self.opcua.write(self.opcua_ns + '/Point1X', 'uint16', source[0]))
@@ -147,7 +148,7 @@ class Stacker:
     def _state_updater(self):
         while not rospy.is_shutdown():
             response = self.opcua.read(self.opcua_ns + '/State')
-            rospy.logdebug('Got new state: ' + str(response.success))
+            rospy.logdebug( 'Got new state: ' + str(getattr(response.data, response.data.type + '_d')) )
             if response.success:
                 self.state = getattr(response.data, response.data.type + '_d')
             else:

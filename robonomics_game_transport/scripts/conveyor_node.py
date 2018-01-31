@@ -6,6 +6,7 @@ import rospy
 from opcua_client import OpcuaClient
 from robonomics_game_transport.srv import ConveyorDestination, ConveyorDestinationResponse
 from robonomics_game_transport.srv import ConveyorLoad, ConveyorLoadResponse
+from robonomics_game_transport.srv import ConveyorProductReady, ConveyorProductReadyResponse
 
 
 class Conveyor:
@@ -35,6 +36,7 @@ class Conveyor:
 
         rospy.Service('~destination', ConveyorDestination, self.set_destination) # set items destination
         rospy.Service('~load', ConveyorLoad, self.load)
+        rospy.Service('~product_ready', ConveyorProductReady, self.product_ready)
         
         self.opcua.write(self.opcua_ns + '/Enable', 'bool', True)
         rospy.loginfo('Conveyor ready')
@@ -77,6 +79,10 @@ class Conveyor:
             rospy.sleep(1)
         self.opcua.write(self.opcua_ns + '/LoadTR' + str(request.consignor), 'bool', False)
         return ConveyorLoadResponse()
+
+    def product_ready(self, request):
+        rospy.logdebug('Conveyor.product_ready')
+        return ConveyorProductReadyResponse( self.opcua.read_data(self.opcua_ns + '/ProductReady') )
 
     def _state_updater(self):
         while not rospy.is_shutdown():

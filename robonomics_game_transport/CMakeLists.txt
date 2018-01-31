@@ -19,6 +19,7 @@ add_service_files(
   FILES
   ConveyorDestination.srv
   ConveyorLoad.srv
+  ConveyorProductReady.srv
 )
 
 ## Generate actions in the 'action' folder
