@@ -18,6 +18,7 @@ class SupplyChain:
 
         def set_current(msg):
             self.current_market = msg.data
+            rospy.loginfo('Current market: ' + self.current_market)
         rospy.Subscriber('/market/current', String, set_current)
 
         def run(msg):
@@ -31,6 +32,6 @@ class SupplyChain:
         rospy.logdebug('Supply chain node started')
 
     def make_bids(self):
-        rospy.logdebug('Making bids...')
+        rospy.loginfo('Making bids...')
         self.bid(0, 1, self.current_market, 1, 50)
 
