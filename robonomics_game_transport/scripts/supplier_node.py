@@ -12,6 +12,7 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from std_srvs.srv import Empty
 from robonomics_liability.msg import Liability
+from robonomics_market.srv import BidsGenerator
 from robonomics_game_warehouse.srv import Order as WarehouseOrder, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
 from robonomics_game_transport.msg import StackerAction, StackerGoal
@@ -19,6 +20,7 @@ from robonomics_game_transport.msg import StackerAction, StackerGoal
 class Supplier:
     busy = False
     jobs_queue = Queue()
+    current_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz4'
 
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('supplier', TransportAction, self.plan_job, auto_start=False)
@@ -47,6 +49,10 @@ class Supplier:
         self.finish = rospy.ServiceProxy(liability_node + '/finish', Empty)
 
         self.current_gh = None
+
+        rospy.wait_for_service('/market/gen_bids')
+        self.bid = rospy.ServiceProxy('/market/gen_bids', BidsGenerator)
+        self.make_bids()
         
         rospy.logdebug('Supplier node initialized')
 
@@ -71,22 +77,32 @@ class Supplier:
             color = goal.specification
             item = self.warehouse.get(color)()
             if item.available:
-                rospy.logwarn( 'Call stacker for job: ' + str([item.x, item.z, goal.address, 1]) )
+                rospy.loginfo( 'Call stacker for job: ' + str([item.x, item.z, goal.address, 1]) )
                 self.current_gh = self.stacker.send_goal( StackerGoal([item.x, item.z, goal.address, 1]) )
                 while not rospy.is_shutdown(): # wait for stacker complete its job
-                    if self.current_gh.get_goal_status() < 2: # actionlib_msgs/GoalStatus
-                        rospy.sleep(1)
-                    else:
+                    goal_status = self.current_gh.get_goal_status()
+                    rospy.logdebug( 'Goal status: ' + str(goal_status) )
+                    if goal_status > 2: # actionlib_msgs/GoalStatus
+                        rospy.loginfo( 'Goal status: ' + str(goal_status) )
                         break
+                    rospy.sleep(1)
                 result.act = 'Job %s %s' % ( str(job.get_goal_id()), GoalStatus.to_string(self.current_gh.get_terminal_state()) )
                 job.set_succeeded(result)
             else:
                 result.act = 'Spec %s is not available' % color
                 job.set_aborted(result)
-                rospy.logdebug('Job aborted')
+                rospy.logwarn('Job aborted')
+        except Exception:
+            rospy.logwarn('Exception arise!')
         finally:
+            rospy.loginfo('Finishing')
             self.finish()
+            self.make_bids()
             self.busy = False
+
+    def make_bids(self):
+        rospy.loginfo('Makin bids...')
+        self.bid(0, 1, self.current_market, 1, 50)
 
 if __name__ == '__main__':
     rospy.init_node('supplier')

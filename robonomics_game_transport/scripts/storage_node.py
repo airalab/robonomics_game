@@ -12,6 +12,7 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from std_srvs.srv import Empty
 from robonomics_liability.msg import Liability
+from robonomics_market.srv import BidsGenerator
 from robonomics_game_warehouse.srv import Place as WarehousePlace, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.srv import ConveyorLoad, ConveyorDestination, ConveyorProductReady
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
@@ -20,6 +21,7 @@ from robonomics_game_transport.msg import StackerAction, StackerGoal
 class Storage:
     busy = False
     jobs_queue = Queue()
+    current_market = 'QmWboFP8XeBtFMbNYK3Ne8Z3gKFBSR5iQzkKgeNgQz3dz5'
 
     def __init__(self, name, catalog, warehouse_init_state, stacker_node, liability_node):
         self._server = actionlib.ActionServer('storage', TransportAction, self.plan_job, auto_start=False)
@@ -67,6 +69,10 @@ class Storage:
         self._jobs_proc_thread = threading.Thread(target=self._jobs_proc)
         self._jobs_proc_thread.daemon = True
         self._jobs_proc_thread.start()
+
+        rospy.wait_for_service('/market/gen_bids')
+        self.bid = rospy.ServiceProxy('/market/gen_bids', BidsGenerator)
+        self.make_bids()
 
         rospy.logdebug('Storage node initialized')
 
@@ -120,7 +126,12 @@ class Storage:
                 job.set_succeeded(result)
         finally:
             self.finish()
+            self.make_bids()
             self.busy = False
+    
+    def make_bids(self):
+        rospy.loginfo('Makin bids...')
+        self.bid(0, 1, self.current_market, 1, 50)
 
 if __name__ == '__main__':
     rospy.init_node('supplier')
