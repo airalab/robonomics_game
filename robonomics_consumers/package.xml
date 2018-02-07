@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package>
+  <name>robonomics_consumers</name>
+  <version>0.0.1</version>
+  <description>The robonomics_consumers package</description>
+
+  <maintainer email="alisher@aira.life">Alisher A. Khassanov</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>robonomics_market</run_depend>
+  <run_depend>rospy</run_depend>
+
+</package>

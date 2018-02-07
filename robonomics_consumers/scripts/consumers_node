@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+import rospy
+from robonomics_market.srv import AsksGenerator
+from robonomics_consumers.srv import CallResponse
+
+from consumers import download_ask_params # from robonomics_consumers import consumers
+
+
+objectives = {
+        'blue'  : 'Qmbdan31EbgETmJU79shwQDHcMgNoRS6RMGDNJZNp8FLCS',
+        'green' : 'QmXzmQUnCrBLkbTAuxkuANjqVp527hJQgHxsjyKf7tod3k',
+        'purple': 'QmcQkUeaK9BcvnZW9YJFp6Gt44BUeithrgeEMSunUosUE3',
+        'yellow': 'QmajTGG9MAXFf97kuMPHhi4nawZCxXKSttejaFQKjdun6z'
+        }
+
+markets = {
+        'blue'  : 'QmbnPpVAA2c5Fsfuo4D4VhwY5YfNe2o5P6KZnYjw47ebQT', # metallurgy
+        'green' : 'QmfCcLKrTCuXsf6bHbVupVv4zsbs6kjqTQ7DRftGqMLjdW', # medicine
+        'purple': 'QmfM63vD3hpDHFSikoRFxucyEgKb7FERcXvLDKpGXnWWh8', # electronics
+        'yellow': 'QmZky14ya2BbSNmjkrybxGdADTg7w7r4rKrVcotsz16HvP'  # automotive
+        }
+
+
+class DataSpreadsheet:
+    uid = ''
+    creds = ''
+
+
+# @brief
+# It takes asking law parameters from google spreadsheet and pass it to robonomics_market
+# to emulate market ask for robononomics_game
+class Consumer:
+
+    def __init__(self):
+        rospy.init_node('consumer', anonymous=True, log_level=rospy.DEBUG)
+        rospy.logdebug('Consumer node starting...')
+
+        self.data_spreadsheet = DataSpreadsheet()
+        self.data_spreadsheet.uid = rospy.get_param('~spreadsheet_id',
+                        '16OYBRS4Nt1V_Fkte0oy0rm4pfBrEu37_QeOoqjjAFmI')
+        self.data_spreadsheet.creds = rospy.get_param('~account_creds_file', 'owner_secret.json')
+
+        rospy.logdebug('Waiting for Market node service...')
+        rospy.wait_for_service( rospy.get_param('~market_node') + '/gen_asks' )
+        self.market_ask = rospy.ServiceProxy('/market/gen_asks', AsksGenerator)
+
+        ## @brief service for web ui
+        def call(request):
+            asks_params = self.get_ask(request.period)
+            for color, params in asks_params:
+                self.make_ask(a, k, markets[color], objectives[color], fee, price_range)
+            return CallResponse()
+        rospy.Service('call', call, Call)
+
+        rospy.logdebug('Condumer node started.')
+
+
+    def get_ask(self, period):
+        ## @param period specifies a sheet of spreadsheet to get data
+        rangeName = 'Day %s!A1:W100' % period
+        asks_params = download_ask_params(creds_file, data_spreadsheetId, rangeName)
+        return asks_params
+
+
+    def make_ask(self, ask):
+        rospy.loginfo('Making ask...')
+        self.ask(ask)
+
+
+    def spin(self):
+        rospy.spin()
+
+
+if __name__ == '__main__':
+    Consumer().spin()
