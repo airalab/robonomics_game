@@ -64,7 +64,7 @@ def download_ask_params(creds_file, spreadsheetId, rangeName):
             elif len(nums) == 1: # get first as a
                 a = nums[0]
                 k = 0
-            return {'a': a, 'k': k}
+            return {'a': float(a), 'k': float(k)}
 
         price_range = max_price_line[0]
         fee = max_price_line[1]
@@ -73,7 +73,6 @@ def download_ask_params(creds_file, spreadsheetId, rangeName):
         ask['green'] = extract_ak(max_price_line[7])
         ask['blue'] = extract_ak(max_price_line[12])
         ask['purple'] = extract_ak(max_price_line[17])
-        print(ask)
         for k, v in ask.items():
             v.update({'fee': fee, 'price_range': price_range})
         return ask
