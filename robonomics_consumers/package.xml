@@ -3,13 +3,14 @@
   <name>robonomics_consumers</name>
   <version>0.0.1</version>
   <description>The robonomics_consumers package</description>
-
   <maintainer email="alisher@aira.life">Alisher A. Khassanov</maintainer>
-
   <license>BSD</license>
+  <url type="repository">https://github.com/airalab/robonomics_game</url>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <run_depend>robonomics_market</run_depend>
-  <run_depend>rospy</run_depend>
+  <build_depend>message_generation</build_depend>
 
+  <run_depend>rospy</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>robonomics_market</run_depend>
 </package>
