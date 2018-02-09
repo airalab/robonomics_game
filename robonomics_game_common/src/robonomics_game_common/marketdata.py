@@ -97,4 +97,4 @@ def bids_params(creds_file, spreadsheetId, rangeName):
 def asks_params(creds_file, spreadsheetId, rangeName):
     content = download_sheet(creds_file, spreadsheetId, rangeName)
     chart = extract_chart(content)
-    return extract_ask_params(chart[-1], 'ask')
+    return extract_lots_params(chart[-1], 'ask')
