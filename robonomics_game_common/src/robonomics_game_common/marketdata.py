@@ -56,7 +56,7 @@ def extract_chart(content, topleft_content='Price', cols_num=17):
 ##    max_price_line[17] - purple chunks ask, formula
 ## @return dict with parameters for robonomics_market/Asks(Bids)Generator message
 def extract_lots_params(max_price_line, lots_type):
-    ## @brief Get 'a' and 'k' parameters of bid/ask law in format like '= - 2.1 +0,05 * $A41'
+    ## @brief Get 'a' and 'k' params of bid/ask law in format like '= - 2.1 +0,05 * $A41'
     def extract_ak(formula):
         nums = findall( r"[+-]?\d+(?:\.\d+)?", formula.replace(',', '.').replace(' ', '') )
         if len(nums) == 3: # get first two as a and k
@@ -73,17 +73,17 @@ def extract_lots_params(max_price_line, lots_type):
     lots = dict()
     price_range = max_price_line[0]
     fee = max_price_line[1]
-    colors = ['yellow', 'green', 'blue', 'purple'] # rainbow order like in the spreadsheet
+    colors = ['yellow', 'green', 'blue', 'purple'] # rainbow order like in the sheet
     if lots_type == 'ask':
         for i, c in enumerate(colors):
-            lots[c] = extract_ak( max_price_line[2 + 5*i] ) # asks in each 5th column after 2nd
+            lots[c] = extract_ak( max_price_line[2 + 5*i] ) # each 5th column after 2nd
             lots[c].update({'fee': fee, 'price_range': price_range})
     elif lots_type == 'bid':
         factories = ['welder', 'driller', 'miller', 'cnc']
         for i, f in enumerate(factories):
-            # for each factory bids for each color are in each 5th column after (3rd + f.num.*5)
+            # for each fact bids for each color are in each 5th col after 3rd + f.num*5
             lots[f] = {c : extract_ak( max_price_line[3 + i + 5*j] )
-                           for j, c in enumerate(colors)}
+                                       for j, c in enumerate(colors)}
             for lot in lots[f].values():
                 lot.update({'fee': fee, 'price_range': price_range})
     return lots
