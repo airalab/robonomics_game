@@ -3,7 +3,7 @@
 
 import rospy
 from robonomics_market.srv import AsksGenerator
-from robonomics_consumers.srv import Call, CallResponse
+from robonomics_game_consumers.srv import Call, CallResponse
 
 from consumers import download_ask_params
 
