@@ -4,8 +4,7 @@
 import rospy
 from robonomics_market.srv import AsksGenerator
 from robonomics_game_consumers.srv import Call, CallResponse
-
-from consumers import download_ask_params
+from robonomics_game_common.marketdata import asks_params
 
 
 objectives = {
@@ -26,6 +25,7 @@ markets = {
 class DataSpreadsheet:
     uid = ''
     creds = ''
+
 
 ## @class Consumer
 ## @brief
@@ -65,8 +65,8 @@ class Consumer:
     def get_ask(self, period):
         ## @param period specifies a sheet of spreadsheet to get data
         rangeName = 'Day %s!A1:W100' % period
-        asks_params = download_ask_params(self.data_spreadsheet.creds,
-                                          self.data_spreadsheet.uid, rangeName)
+        asks_params = asks_params(self.data_spreadsheet.creds,
+                                  self.data_spreadsheet.uid, rangeName)
         return asks_params
 
     def spin(self):
