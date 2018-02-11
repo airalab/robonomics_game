@@ -5,7 +5,8 @@
 
   <node ns="opcua" name="opcua_client" pkg="ros_opcua_impl_freeopcua" type="client_node" output="screen" />
 
-  <group ns="cnc">
+  <arg name="plant" value="cnc" />
+  <group ns="$(arg plant)">
     <param name="actionlib_server_sub_queue_size" value="50" />
     <param name="actionlib_client_sub_queue_size" value="50" />
 
@@ -15,9 +16,10 @@
     </node>
 
     <node pkg="robonomics_game_supply" type="supply_node" name="supply_chain" output="screen">
-      <param name="liability_node" value="/liability" />
-      <param name="plant_node" value="/cnc/plant" />
+      <param name="plant_type" value="$(arg plant)" />
+      <param name="plant_node" value="/$(arg plant)/plant" />
       <param name="plant_addr" value="4" />
+      <param name="liability_node" value="/liability" />
     </node>
   </group>
 </launch>
