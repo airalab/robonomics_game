@@ -7,14 +7,15 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 
 ## @brief Download one sheet from Google Sheets with given credentials
-def download_sheet(creds_file, spreadsheetid, rangename):
-    def get_values(service, spreadsheetId, rangeName):
+def download_sheet(creds_file, spreadsheet_id, range_name):
+    def get_values(service, spreadsheet_id, range_name):
         result = service.spreadsheets().values().get(
-            spreadsheetId=spreadsheetId,
-            range=rangeName,
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
             valueRenderOption='FORMULA'
             ).execute()
         return result.get('values')
+
     def get_service(creds_file):
         credentials = ServiceAccountCredentials.from_json_keyfile_name(creds_file,
                                 ['https://www.googleapis.com/auth/spreadsheets',
@@ -29,7 +30,7 @@ def download_sheet(creds_file, spreadsheetid, rangename):
                                             discoveryServiceUrl=discoveryUrl)
         return service
     
-    content = get_values(get_service(creds_file), spreadsheetId, rangeName)
+    content = get_values(get_service(creds_file), spreadsheet_id, range_name)
     return content
 
 
@@ -76,25 +77,27 @@ def extract_lots_params(max_price_line, lots_type):
     if lots_type == 'ask':
         for i, c in enumerate(colors):
             lots[c] = extract_ak( max_price_line[2 + 5*i] ) # asks in each 5th column after 2nd
+            lots[c].update({'fee': fee, 'price_range': price_range})
     elif lots_type == 'bid':
         factories = ['welder', 'driller', 'miller', 'cnc']
         for i, f in enumerate(factories):
             # for each factory bids for each color are in each 5th column after (3rd + f.num.*5)
-            lots[f] = { c : max_price_line[3 + i + 5*j] for j, c in enumerate(colors) }
-    for v in lots.values():
-        v.update({'fee': fee, 'price_range': price_range})
+            lots[f] = {c : extract_ak( max_price_line[3 + i + 5*j] )
+                           for j, c in enumerate(colors)}
+            for lot in lots[f].values():
+                lot.update({'fee': fee, 'price_range': price_range})
     return lots
 
 
 ## @brief Download bids parameters from given spreadsheet
-def bids_params(creds_file, spreadsheetId, rangeName):
-    content = download_sheet(creds_file, spreadsheetId, rangeName)
+def bids_params(creds_file, spreadsheet_id, range_name):
+    content = download_sheet(creds_file, spreadsheet_id, range_name)
     chart = extract_chart(content)
     return extract_lots_params(chart[-1], 'bid')
 
 
 ## @brief Download asks parameters from given spreadsheet
-def asks_params(creds_file, spreadsheetId, rangeName):
-    content = download_sheet(creds_file, spreadsheetId, rangeName)
+def asks_params(creds_file, spreadsheet_id, range_name):
+    content = download_sheet(creds_file, spreadsheet_id, range_name)
     chart = extract_chart(content)
     return extract_lots_params(chart[-1], 'ask')
