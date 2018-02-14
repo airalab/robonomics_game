@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from robonomics_market.srv import AsksGenerator, BidsGenerator
-from std_msgs.msg import String
+import datetime
 import rospy
+from std_msgs.msg import String
 from robonomics_game_common.marketdata import bids_params 
+from robonomics_market.srv import AsksGenerator, BidsGenerator
 
 
 markets = {
-        'blue': 'QmbnPpVAA2c5Fsfuo4D4VhwY5YfNe2o5P6KZnYjw47ebQT', # metallurgy
+        'blue'  : 'QmbnPpVAA2c5Fsfuo4D4VhwY5YfNe2o5P6KZnYjw47ebQT', # metallurgy
         'green' : 'QmfCcLKrTCuXsf6bHbVupVv4zsbs6kjqTQ7DRftGqMLjdW', # medicine
         'purple': 'QmfM63vD3hpDHFSikoRFxucyEgKb7FERcXvLDKpGXnWWh8', # electronics
         'yellow': 'QmZky14ya2BbSNmjkrybxGdADTg7w7r4rKrVcotsz16HvP'  # automotive
@@ -17,6 +18,7 @@ markets = {
 class DataSpreadsheet:
     uid = ''
     creds = ''
+
 
 class SupplyChain:
     current_market = ""
@@ -64,6 +66,8 @@ class SupplyChain:
                      p['fee'],
                      p['price_range'])
 
-    # TODO Date based or something else
     def get_current_period(self):
-        return 0
+        first_day = datetime.datetime.strptime(rospy.get_param('~first_day_game'),
+                                               '%d-%m-%Y').date()
+        today = datetime.date.today()
+        return (today - first_day).days

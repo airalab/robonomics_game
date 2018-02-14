@@ -16,6 +16,7 @@
     </node>
 
     <node pkg="robonomics_game_supply" type="supply_node" name="supply_chain" output="screen">
+      <param name="first_day_game" value="14-02-2018" /> <!-- "dd-mm-YYYY" -->
       <param name="plant_type" value="$(arg plant)" />
       <param name="plant_node" value="/$(arg plant)/plant" />
       <param name="plant_addr" value="1" />
