@@ -65,9 +65,9 @@ class Consumer:
     def get_ask(self, period):
         ## @param period specifies a sheet of spreadsheet to get data
         rangeName = 'Day %s!A1:W100' % period
-        asks_params = asks_params(self.data_spreadsheet.creds,
-                                  self.data_spreadsheet.uid, rangeName)
-        return asks_params
+        params = asks_params(self.data_spreadsheet.creds,
+                             self.data_spreadsheet.uid, rangeName)
+        return params
 
     def spin(self):
         rospy.spin()
