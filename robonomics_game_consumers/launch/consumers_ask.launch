@@ -1,9 +1,8 @@
 <launch>
   <include file="$(find robonomics_market)/launch/market.launch" />
-
   <node pkg="robonomics_game_consumers" type="consumers_node" name="consumers" output="screen">
     <param name="market_node" value="/market" />
-    <param name="account_secret" value="/root/ws/src/robonomics_game/robonomics_game_consumers/scripts/owner_secret.json" />  <!-- Service account JSON file path -->
+    <param name="account_secret" value="$(find robonomics_game_consumers)/scripts/owner_secret.json" />  <!-- Service account JSON file path -->
     <param name="spreadsheet_id" value="16OYBRS4Nt1V_Fkte0oy0rm4pfBrEu37_QeOoqjjAFmI" /> <!-- From link -->
   </node>
 
