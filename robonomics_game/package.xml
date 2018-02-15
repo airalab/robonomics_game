@@ -11,9 +11,12 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <exec_depend>robonomics_game_common</exec_depend>
   <exec_depend>robonomics_game_warehouse</exec_depend>
   <exec_depend>robonomics_game_plant</exec_depend>
+  <exec_depend>robonomics_game_supply</exec_depend>
   <exec_depend>robonomics_game_transport</exec_depend>
+  <exec_depend>robonomics_game_consumers</exec_depend>
 
   <export>
     <metapackage/>
