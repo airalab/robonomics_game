@@ -42,7 +42,11 @@ class SupplyChain:
         def set_current(msg):
             self.current_market = msg.data
             rospy.loginfo('Current market: ' + self.current_market)
-        rospy.Subscriber('/market/current', String, set_current)
+        rospy.Subscriber('/control/current', String, set_current)
+
+        while not self.current_market:
+            rospy.logdebug('Waiting for market establishing...')
+            rospy.sleep(1)
 
         def run(msg):
             rospy.logdebug('SupplyChain.run, msg.data: ' + msg.data)
