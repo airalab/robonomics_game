@@ -21,7 +21,7 @@ class DataSpreadsheet:
 
 
 class SupplyChain:
-    current_market = ""
+    current_market = "QmfCcLKrTCuXsf6bHbVupVv4zsbs6kjqTQ7DRftGqMLjdW"
 
     def __init__(self):
         rospy.init_node('supply_chain', anonymous=True, log_level=rospy.DEBUG)
@@ -44,10 +44,6 @@ class SupplyChain:
             rospy.loginfo('Current market: ' + self.current_market)
         rospy.Subscriber('/control/current', String, set_current)
 
-        while not self.current_market:
-            rospy.logdebug('Waiting for market establishing...')
-            rospy.sleep(1)
-
         def run(msg):
             rospy.logdebug('SupplyChain.run, msg.data: ' + msg.data)
             self.prepare(msg.data)
@@ -60,7 +56,7 @@ class SupplyChain:
 
     def make_bids(self):
         rospy.loginfo('Making bids...')
-        rangeName = 'Day %s!A:W100' % get_current_period()
+        rangeName = 'Day %s!A1:W100' % self.get_current_period()
         params = bids_params(self.data_spreadsheet.creds,
                              self.data_spreadsheet.uid, rangeName)[self.plant_type]
         for c, p in params.items():
