@@ -9,6 +9,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>message_generation</build_depend>
+  <run_depend>robonomics_game_common</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>robonomics_market</run_depend>
   <run_depend>robonomics_liability</run_depend>
