@@ -56,15 +56,16 @@ class SupplyChain:
 
     def make_bids(self):
         rospy.loginfo('Making bids...')
-        rangeName = 'Day %s!A1:W100' % self.get_current_period()
+        rangeName = 'Day %s!A1:W500' % self.get_current_period()
         params = bids_params(self.data_spreadsheet.creds,
                              self.data_spreadsheet.uid, rangeName)[self.plant_type]
         for c, p in params.items():
-            self.bid(p['a'],
-                     p['k'],
-                     markets[c],
-                     p['fee'],
-                     p['price_range'])
+            if markets[c] is self.current_market:
+                self.bid(p['a'],
+                         p['k'],
+                         markets[c],
+                         p['fee'],
+                         p['price_range'])
 
     def get_current_period(self):
         first_day = datetime.datetime.strptime(rospy.get_param('~first_day_game'),

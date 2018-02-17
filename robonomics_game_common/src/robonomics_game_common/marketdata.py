@@ -35,7 +35,7 @@ def download_sheet(creds_file, spreadsheet_id, range_name):
 
 
 ## @brief Cut mess blelow and above the chart in sheet
-def extract_chart(content, topleft_content='Price', cols_num=17):
+def extract_chart(content, topleft_content='Price', cols_num=152):
     row_chart = 0
     for row_number, row_content in enumerate(content):
         if topleft_content in row_content:
@@ -76,7 +76,9 @@ def extract_lots_params(max_price_line, lots_type):
     colors = ['yellow', 'green', 'blue', 'purple'] # rainbow order like in the sheet
     if lots_type == 'ask':
         for i, c in enumerate(colors):
-            lots[c] = extract_ak( max_price_line[2 + 5*i] ) # each 5th column after 2nd
+            ak = extract_ak( max_price_line[2 + 5*i] ) # each 5th column after 2nd
+            ak['k'] = -ak['k']
+            lots[c] = ak
             lots[c].update({'fee': fee, 'price_range': price_range})
     elif lots_type == 'bid':
         factories = ['welder', 'driller', 'miller', 'cnc']
@@ -91,6 +93,7 @@ def extract_lots_params(max_price_line, lots_type):
 
 ## @brief Download bids parameters from given spreadsheet
 def bids_params(creds_file, spreadsheet_id, range_name):
+    # print("Getting bids: %s, %s, %s" % (creds_file, spreadsheet_id, range_name))
     content = download_sheet(creds_file, spreadsheet_id, range_name)
     chart = extract_chart(content)
     return extract_lots_params(chart[-1], 'bid')
@@ -98,6 +101,7 @@ def bids_params(creds_file, spreadsheet_id, range_name):
 
 ## @brief Download asks parameters from given spreadsheet
 def asks_params(creds_file, spreadsheet_id, range_name):
+    # print("Getting asks: %s, %s, %s" % (creds_file, spreadsheet_id, range_name))
     content = download_sheet(creds_file, spreadsheet_id, range_name)
     chart = extract_chart(content)
     return extract_lots_params(chart[-1], 'ask')

@@ -64,7 +64,7 @@ class Consumer:
 
     def get_ask(self, period):
         ## @param period specifies a sheet of spreadsheet to get data
-        rangeName = 'Day %s!A1:W100' % period
+        rangeName = 'Day %s!A1:W500' % period
         params = asks_params(self.data_spreadsheet.creds,
                              self.data_spreadsheet.uid, rangeName)
         return params
