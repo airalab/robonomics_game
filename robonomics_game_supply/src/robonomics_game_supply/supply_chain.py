@@ -58,15 +58,14 @@ class SupplyChain:
             self.make_bids()
         rospy.Subscriber('/run', String, run)
 
-        rospy.logdebug('Supply chain node started')
-
     def make_bids(self):
         rospy.loginfo('Making bids...')
         rangeName = 'Day %s!A1:W500' % self.get_current_period()
         params = bids_params(self.data_spreadsheet.creds,
                              self.data_spreadsheet.uid, rangeName)[self.plant_type]
         for c, p in params.items():
-            if markets[c] is self.current_market:
+            if markets[c] == self.current_market:
+                rospy.loginfo('Bids for market: %s', markets[c])
                 self.bid(p['a'],
                          p['k'],
                          markets[c],
