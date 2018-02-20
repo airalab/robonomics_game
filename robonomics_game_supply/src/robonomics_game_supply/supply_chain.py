@@ -21,7 +21,7 @@ class DataSpreadsheet:
 
 
 class SupplyChain:
-    current_market = "QmfCcLKrTCuXsf6bHbVupVv4zsbs6kjqTQ7DRftGqMLjdW"
+    current_market = ""
 
     def __init__(self):
         rospy.init_node('supply_chain', anonymous=True, log_level=rospy.DEBUG)
@@ -40,8 +40,14 @@ class SupplyChain:
         self.data_spreadsheet.creds = rospy.get_param('~account_secret', 'owner_secret.json')
 
         def set_current(msg):
+            old_market = self.current_market
             self.current_market = msg.data
-            rospy.loginfo('Current market: ' + self.current_market)
+            rospy.loginfo('Current market updated: ' + self.current_market)
+
+            if len(old_market) == 0:
+                rospy.loginfo('First market catched, making bids...')
+                self.make_bids()
+
         rospy.Subscriber('/control/current', String, set_current)
 
         def run(msg):

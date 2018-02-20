@@ -84,7 +84,6 @@ class Supply(SupplyChain):
         '''
             Waiting for the new messages.
         '''
-        self.make_bids()
         rospy.spin()
 
     def prepare(self, objective):
