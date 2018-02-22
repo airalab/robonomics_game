@@ -1,5 +1,6 @@
-import httplib2
+from itertools import product
 from re import findall
+import httplib2
 import apiclient
 from oauth2client import client
 from oauth2client import tools
@@ -7,12 +8,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 
 ## @brief Download one sheet from Google Sheets with given credentials
-def download_sheet(creds_file, spreadsheet_id, range_name):
+def download_sheet(creds_file, spreadsheet_id, range_name, render_option='FORMULA'):
     def get_values(service, spreadsheet_id, range_name):
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
             range=range_name,
-            valueRenderOption='FORMULA'
+            valueRenderOption=render_option # FORMATTED_VALUE, UNFORMATTED_VALUE, FORMULA
             ).execute()
         return result.get('values')
 
@@ -96,6 +97,8 @@ def bids_params(creds_file, spreadsheet_id, range_name):
     # print("Getting bids: %s, %s, %s" % (creds_file, spreadsheet_id, range_name))
     content = download_sheet(creds_file, spreadsheet_id, range_name)
     chart = extract_chart(content)
+    print(chart)
+    print(extract_lots_params(chart[-1], 'bid'))
     return extract_lots_params(chart[-1], 'bid')
 
 
@@ -104,4 +107,59 @@ def asks_params(creds_file, spreadsheet_id, range_name):
     # print("Getting asks: %s, %s, %s" % (creds_file, spreadsheet_id, range_name))
     content = download_sheet(creds_file, spreadsheet_id, range_name)
     chart = extract_chart(content)
+    print(chart)
+    print(extract_lots_params(chart[-1], 'ask'))
     return extract_lots_params(chart[-1], 'ask')
+
+
+def download_chart(creds_file, spreadsheet_id, range_name, cols_num=152):
+    content = download_sheet(creds_file, spreadsheet_id, range_name,
+                             render_option='UNFORMATTED_VALUE')
+    chart = extract_chart(content, cols_num=cols_num)
+    return chart
+
+
+def chart_to_dict(chart):
+    colors = ['yellow', 'green', 'blue', 'purple'] # rainbow order like in the sheet
+    factories = ['welder', 'driller', 'miller', 'cnc'] # order like in the spreadsheet
+    dchart = list()
+    for i in range(2, len(chart)): # from non-zero price to last row
+        dchart.append(
+        {'Price': chart[i][0],
+         'Fee': chart[i][1],
+         'Lots': {c: {'ask': chart[i][2 + 5*ci],
+                      'bids': {f:chart[i][3 + fi + 5*ci] for fi, f in enumerate(factories)}
+                     } for ci, c in enumerate(colors)
+                 }
+        })
+    return dchart
+
+
+def get_matched_asks(dchart):
+    colors = ['yellow', 'green', 'blue', 'purple'] # rainbow order like in the sheet
+    factories = ['welder', 'driller', 'miller', 'cnc']
+    matched_asks = list()
+    for row in dchart:
+        p = row['Price']
+        fee = row['Fee']
+        lots = row['Lots']
+        for c in colors:
+            ask_quantity = lots[c]['ask']
+            if ask_quantity < 0 or ask_quantity % 1 != 0: # drop non natural quantity
+                continue
+            matches = 0
+            for f in factories:
+                bid_quantity = lots[c]['bids'][f]
+                if ask_quantity == bid_quantity:
+                    matches += 1
+            q = ask_quantity
+            m = matches
+            matched_asks.append({'Color': c, 'Price': p, 'Fee': fee, 'Quantity': q, 'Matches': m})
+    return matched_asks
+
+
+def download_matched_asks(creds_file, spreadsheet_id, range_name, cols_num=152):
+    chart = download_chart(creds_file, spreadsheet_id, range_name, cols_num=152)
+    dchart = chart_to_dict(chart)
+    asks = get_matched_asks(dchart)
+    return asks
