@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from robonomics_market import Ask
+from robonomics_market.msg import Ask
 from robonomics_market.srv import AsksGenerator
 from robonomics_game_consumers.srv import Call, CallResponse
 from robonomics_game_common.marketdata import download_matched_asks
@@ -48,12 +48,11 @@ class Consumer:
 
         ## @brief service for web ui
         def call(request):
-            rospy.loginfo('Making ask...')
+            rospy.loginfo('Making asks...')
             rangeName = 'Day %s!A1:W500' % request.period
             asks = download_matched_asks(self.data_spreadsheet.creds,
                                          self.data_spreadsheet.uid,
                                          rangeName)
-            
             for ask in asks:
                 msg = Ask()
                 color = ask['Color']
