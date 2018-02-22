@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import rospy
+from robonomics_market import Ask
 from robonomics_market.srv import AsksGenerator
 from robonomics_game_consumers.srv import Call, CallResponse
-from robonomics_game_common.marketdata import asks_params
+from robonomics_game_common.marketdata import download_matched_asks
 
 
 objectives = {
@@ -43,20 +44,26 @@ class Consumer:
 
         rospy.logdebug('Waiting for Market node service...')
         rospy.wait_for_service( rospy.get_param('~market_node', '/market') + '/gen_asks' )
-        self.ask = rospy.ServiceProxy('/market/gen_asks', AsksGenerator)
+        self.signing_ask = rospy.Publisher('market/signing/ask', Ask, queue_size=128)
 
         ## @brief service for web ui
         def call(request):
-            asks_params = self.get_ask(request.period)
-            rospy.logdebug(str(asks_params))
             rospy.loginfo('Making ask...')
-            for color, params in asks_params.items():
-                self.ask(params['a'],
-                         params['k'],
-                         markets[color],
-                         objectives[color],
-                         params['fee'],
-                         params['price_range'])
+            rangeName = 'Day %s!A1:W500' % request.period
+            asks = download_matched_asks(self.data_spreadsheet.creds,
+                                         self.data_spreadsheet.uid,
+                                         rangeName)
+            
+            for ask in asks:
+                msg = Ask()
+                color = ask['Color']
+                msg.model = markets[color]
+                msg.objective = objectives[color]
+                msg.fee = ask['Fee']
+                msg.cost = ask['Price']
+                msg.count = int(ask['Quantity'])
+                for i in range(ask['Matches']):
+                    self.signing_ask.publish(msg)
             return CallResponse()
         rospy.Service('call', Call, call)
 
