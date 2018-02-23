@@ -46,6 +46,13 @@ def extract_chart(content, topleft_content='Price', cols_num=152):
     return chart
 
 
+def download_chart(creds_file, spreadsheet_id, range_name, cols_num=152):
+    content = download_sheet(creds_file, spreadsheet_id, range_name,
+                             render_option='UNFORMATTED_VALUE')
+    chart = extract_chart(content, cols_num=cols_num)
+    return chart
+
+
 ## @brief Get lot parameters from chart
 ## @param max_price_line expected format:
 ##   ask:
@@ -92,16 +99,6 @@ def extract_lots_params(max_price_line, lots_type):
     return lots
 
 
-## @brief Download bids parameters from given spreadsheet
-def bids_params(creds_file, spreadsheet_id, range_name):
-    # print("Getting bids: %s, %s, %s" % (creds_file, spreadsheet_id, range_name))
-    content = download_sheet(creds_file, spreadsheet_id, range_name)
-    chart = extract_chart(content)
-    print(chart)
-    print(extract_lots_params(chart[-1], 'bid'))
-    return extract_lots_params(chart[-1], 'bid')
-
-
 ## @brief Download asks parameters from given spreadsheet
 def asks_params(creds_file, spreadsheet_id, range_name):
     # print("Getting asks: %s, %s, %s" % (creds_file, spreadsheet_id, range_name))
@@ -112,11 +109,14 @@ def asks_params(creds_file, spreadsheet_id, range_name):
     return extract_lots_params(chart[-1], 'ask')
 
 
-def download_chart(creds_file, spreadsheet_id, range_name, cols_num=152):
-    content = download_sheet(creds_file, spreadsheet_id, range_name,
-                             render_option='UNFORMATTED_VALUE')
-    chart = extract_chart(content, cols_num=cols_num)
-    return chart
+## @brief Download bids parameters from given spreadsheet
+def bids_params(creds_file, spreadsheet_id, range_name):
+    # print("Getting bids: %s, %s, %s" % (creds_file, spreadsheet_id, range_name))
+    content = download_sheet(creds_file, spreadsheet_id, range_name)
+    chart = extract_chart(content)
+    print(chart)
+    print(extract_lots_params(chart[-1], 'bid'))
+    return extract_lots_params(chart[-1], 'bid')
 
 
 def chart_to_dict(chart):
@@ -157,9 +157,35 @@ def get_matched_asks(dchart):
             matched_asks.append({'Color': c, 'Price': p, 'Fee': fee, 'Quantity': q, 'Matches': m})
     return matched_asks
 
+def get_matched_bids(dchart):
+    colors = ['yellow', 'green', 'blue', 'purple'] # rainbow order like in the sheet
+    factories = ['welder', 'driller', 'miller', 'cnc']
+    bids = list()
+    for row in dchart:
+        p = row['Price']
+        fee = row['Fee']
+        lots = row['Lots']
+        for c in colors:
+            ask_quantity = lots[c]['ask']
+            if ask_quantity < 0 or ask_quantity % 1 != 0: # drop non natural quantity
+                continue
+            for f in factories:
+                bid_quantity = lots[c]['bids'][f]
+                if ask_quantity == bid_quantity:
+                    q = ask_quantity
+                    bids.append({'Factory': f, 'Color': c, 'Price': p, 'Fee': fee, 'Quantity': q})
+    return bids
+
 
 def download_matched_asks(creds_file, spreadsheet_id, range_name, cols_num=152):
     chart = download_chart(creds_file, spreadsheet_id, range_name, cols_num=152)
     dchart = chart_to_dict(chart)
     asks = get_matched_asks(dchart)
     return asks
+
+
+def download_matched_bids(creds_file, spreadsheet_id, range_name, cols_num=152):
+    chart = download_chart(creds_file, spreadsheet_id, range_name, cols_num=152)
+    dchart = chart_to_dict(chart)
+    bids = get_matched_bids(dchart)
+    return bids
