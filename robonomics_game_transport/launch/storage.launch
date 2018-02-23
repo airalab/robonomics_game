@@ -1,4 +1,7 @@
 <launch>
+  <include file="$(find robonomics_market)/launch/market.launch" />
+  <include file="$(find robonomics_liability)/launch/liability.launch" />
+
   <group ns="warehouse">
     <group ns="goods">
       <node pkg="robonomics_game_warehouse" name="yellow" type="warehouse_node.py">
@@ -75,7 +78,4 @@
       <param name="warehouse_init_state" value="empty" /> <!-- "full" or "empty" -->
     </node>
   </group>
-
-  <include file="$(find robonomics_market)/launch/market.launch" />
-  <include file="$(find robonomics_liability)/launch/liability.launch" />
 </launch>

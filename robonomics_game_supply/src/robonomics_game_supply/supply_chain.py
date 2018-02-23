@@ -4,7 +4,9 @@ import datetime
 import rospy
 from std_msgs.msg import String
 from robonomics_game_common.marketdata import bids_params 
+from robonomics_game_common.marketdata import download_matched_bids
 from robonomics_market.srv import AsksGenerator, BidsGenerator
+from robonomics_market.msg import Ask, Bid
 
 
 markets = {
@@ -32,7 +34,9 @@ class SupplyChain:
         rospy.wait_for_service('/market/gen_asks')
         rospy.wait_for_service('/market/gen_bids')
         self.ask = rospy.ServiceProxy('/market/gen_asks', AsksGenerator)
+        self.signing_ask = rospy.Publisher('/market/signing/ask', Ask, queue_size=128)
         self.bid = rospy.ServiceProxy('/market/gen_bids', BidsGenerator)
+        self.signing_bid = rospy.Publisher('/market/signing/bid', Bid, queue_size=128)
 
         self.data_spreadsheet = DataSpreadsheet()
         self.data_spreadsheet.uid = rospy.get_param('~spreadsheet_id',
@@ -60,17 +64,19 @@ class SupplyChain:
 
     def make_bids(self):
         rospy.loginfo('Making bids...')
-        rangeName = 'Day %s!A1:W500' % self.get_current_period()
-        params = bids_params(self.data_spreadsheet.creds,
-                             self.data_spreadsheet.uid, rangeName)[self.plant_type]
-        for c, p in params.items():
-            if markets[c] == self.current_market:
-                rospy.loginfo('Bids for market: %s', markets[c])
-                self.bid(p['a'],
-                         p['k'],
-                         markets[c],
-                         p['fee'],
-                         p['price_range'])
+        range_name = 'Day %s!A1:W500' % self.get_current_period()
+
+        bids = download_matched_bids(self.data_spreadsheet.creds,
+                                     self.data_spreadsheet.uid,
+                                     range_name)
+        for bid in bids:
+            msg = Bid()
+            msg.model = self.current_market
+            if bid['Factory'] == self.plant_type and markets[bid['Color']] == self.current_market:
+                msg.fee = bid['Fee']
+                msg.cost = bid['Price']
+                msg.count = int(bid['Quantity'])
+                self.signing_bid.publish(msg)
 
     def get_current_period(self):
         first_day = datetime.datetime.strptime(rospy.get_param('~first_day_game'),

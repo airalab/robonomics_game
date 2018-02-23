@@ -15,6 +15,7 @@ import rospy, json
 from .supply_chain import SupplyChain
 from actionlib import ActionClient
 from actionlib_msgs.msg import GoalStatus
+from robonomics_market.msg import Ask
 from robonomics_game_plant.msg import OrderAction as PlantAction, OrderGoal as PlantGoal 
 from robonomics_game_plant.srv import Unload as PlantUnload
 
@@ -88,7 +89,15 @@ class Supply(SupplyChain):
 
     def prepare(self, objective):
         rospy.logdebug('Supply.prepare: ' + objective)
-        self.ask(10, 1, supplier_market, supplier[objective][self.addr-1], 1, 50)
+        # ask for raw material
+        # self.ask(10, 1, supplier_market, supplier[objective][self.addr-1], 1, 50)
+        msg = Ask()
+        msg.model     = supplier_market
+        msg.objective = supplier[objective][self.addr-1]
+        msg.cost      = 42
+        msg.count     = 1
+        msg.fee       = 3
+        self.signing_ask.publish(msg)
 
     def task(self, objective):
         rospy.logdebug('Supply.task: ' + objective)
@@ -108,7 +117,15 @@ class Supply(SupplyChain):
 
     def finalize(self, objective):
         rospy.logdebug('Supply.finalize: ' + objective)
-        self.ask(10, 1, storage_market, storage[objective][self.addr-1], 1, 50)
+        # ask for goods storage
+        # self.ask(10, 1, storage_market, storage[objective][self.addr-1], 1, 50)
+        msg = Ask()
+        msg.model     = storage_market
+        msg.objective = storage[objective][self.addr-1]
+        msg.cost      = 10
+        msg.count     = 1
+        msg.fee       = 1
+        self.signing_ask.publish(msg)
         self.unload()
         rospy.sleep(5)
         rospy.logdebug('Order complete')

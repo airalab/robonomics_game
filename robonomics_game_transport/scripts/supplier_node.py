@@ -13,7 +13,11 @@ from actionlib_msgs.msg import GoalStatus
 from std_srvs.srv import Empty
 from robonomics_liability.msg import Liability
 from robonomics_market.srv import BidsGenerator
-from robonomics_game_warehouse.srv import Order as WarehouseOrder, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
+from robonomics_market.msg import Bid
+from robonomics_game_common.utils import SubscribersCounter
+from robonomics_game_warehouse.srv import Order as WarehouseOrder
+from robonomics_game_warehouse.srv import FillAll as WarehouseFillAll
+from robonomics_game_warehouse.srv import EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
 from robonomics_game_transport.msg import StackerAction, StackerGoal
 
@@ -52,6 +56,11 @@ class Supplier:
 
         rospy.wait_for_service('/market/gen_bids')
         self.bid = rospy.ServiceProxy('/market/gen_bids', BidsGenerator)
+        subscnt = SubscribersCounter()
+        self.signing_bid = rospy.Publisher('/market/signing/bid', Bid,
+                                           subscriber_listener=subscnt, queue_size=128)
+        while subscnt.num_peers < 1: # wait for market node
+            rospy.sleep(0.3)
         self.make_bids()
         
         rospy.logdebug('Supplier node initialized')
@@ -102,7 +111,13 @@ class Supplier:
 
     def make_bids(self):
         rospy.loginfo('Makin bids...')
-        self.bid(0, 1, self.current_market, 1, 50)
+        # self.bid(0, 1, self.current_market, 1, 50)
+        msg = Bid()
+        msg.model = self.current_market
+        msg.cost  = 42
+        msg.count = 1
+        msg.fee   = 3
+        self.signing_bid.publish(msg)
 
 if __name__ == '__main__':
     rospy.init_node('supplier')
