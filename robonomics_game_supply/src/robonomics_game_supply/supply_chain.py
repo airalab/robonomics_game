@@ -5,6 +5,7 @@ import rospy
 from std_msgs.msg import String
 from robonomics_game_common.marketdata import bids_params 
 from robonomics_game_common.marketdata import download_matched_bids
+from robonomics_game_common.srv import Step, StepResponse
 from robonomics_market.srv import AsksGenerator, BidsGenerator
 from robonomics_market.msg import Ask, Bid
 
@@ -43,6 +44,12 @@ class SupplyChain:
                         '16OYBRS4Nt1V_Fkte0oy0rm4pfBrEu37_QeOoqjjAFmI')
         self.data_spreadsheet.creds = rospy.get_param('~account_secret', 'owner_secret.json')
 
+        def step(request):
+            rospy.loginfo('Factory %s running step %d...', self.plant_type, request.step)
+            self.make_bids(request.step)
+            return StepResponse()
+        rospy.Service('~step', Step, step)
+
         def set_current(msg):
             old_market = self.current_market
             self.current_market = msg.data
@@ -51,7 +58,6 @@ class SupplyChain:
             if len(old_market) == 0:
                 rospy.loginfo('First market catched, making bids...')
                 self.make_bids()
-
         rospy.Subscriber('/control/current', String, set_current)
 
         def run(msg):
@@ -59,12 +65,11 @@ class SupplyChain:
             self.prepare(msg.data)
             self.task(msg.data)
             self.finalize(msg.data)
-            self.make_bids()
         rospy.Subscriber('/run', String, run)
 
-    def make_bids(self):
-        rospy.loginfo('Making bids...')
-        range_name = 'Day %s!A1:W500' % self.get_current_period()
+    def make_bids(self, step=None):
+        rospy.loginfo('Current market %s, making bids...', self.current_market)
+        range_name = 'Day %s!A1:W500' % (step or self.get_current_step())
 
         bids = download_matched_bids(self.data_spreadsheet.creds,
                                      self.data_spreadsheet.uid,
@@ -78,7 +83,7 @@ class SupplyChain:
                 msg.count = int(bid['Quantity'])
                 self.signing_bid.publish(msg)
 
-    def get_current_period(self):
+    def get_current_step(self):
         first_day = datetime.datetime.strptime(rospy.get_param('~first_day_game'),
                                                '%d-%m-%Y').date()
         today = datetime.date.today()

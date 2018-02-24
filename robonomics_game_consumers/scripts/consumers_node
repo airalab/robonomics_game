@@ -4,7 +4,7 @@
 import rospy
 from robonomics_market.msg import Ask
 from robonomics_market.srv import AsksGenerator
-from robonomics_game_consumers.srv import Call, CallResponse
+from robonomics_game_common.srv import Step, StepResponse
 from robonomics_game_common.marketdata import download_matched_asks
 
 
@@ -47,12 +47,12 @@ class Consumer:
         self.signing_ask = rospy.Publisher('market/signing/ask', Ask, queue_size=128)
 
         ## @brief service for web ui
-        def call(request):
+        def step(request):
             rospy.loginfo('Making asks...')
-            rangeName = 'Day %s!A1:W500' % request.period
+            range_name = 'Day %s!A1:W500' % request.step
             asks = download_matched_asks(self.data_spreadsheet.creds,
                                          self.data_spreadsheet.uid,
-                                         rangeName)
+                                         range_name)
             for ask in asks:
                 msg = Ask()
                 color = ask['Color']
@@ -63,14 +63,14 @@ class Consumer:
                 msg.count = int(ask['Quantity'])
                 for i in range(ask['Matches']):
                     self.signing_ask.publish(msg)
-            return CallResponse()
-        rospy.Service('call', Call, call)
+            return StepResponse()
+        rospy.Service('~step', Step, step)
 
         rospy.logdebug('Condumer node started.')
 
-    def get_ask(self, period):
-        ## @param period specifies a sheet of spreadsheet to get data
-        rangeName = 'Day %s!A1:W500' % period
+    def get_ask(self, step):
+        ## @param step specifies a sheet of spreadsheet to get data
+        rangeName = 'Day %s!A1:W500' % step
         params = asks_params(self.data_spreadsheet.creds,
                              self.data_spreadsheet.uid, rangeName)
         return params
