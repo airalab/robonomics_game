@@ -44,7 +44,7 @@ class Consumer:
 
         rospy.logdebug('Waiting for Market node service...')
         rospy.wait_for_service( rospy.get_param('~market_node', '/market') + '/gen_asks' )
-        self.signing_ask = rospy.Publisher('market/signing/ask', Ask, queue_size=128)
+        self.signing_ask = rospy.Publisher('/market/signing/ask', Ask, queue_size=128)
 
         ## @brief service for web ui
         def step(request):
