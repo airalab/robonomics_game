@@ -15,6 +15,7 @@ from robonomics_liability.msg import Liability
 from robonomics_market.srv import BidsGenerator
 from robonomics_market.msg import Bid
 from robonomics_game_common.utils import SubscribersCounter
+from robonomics_game_common.srv import Step, StepResponse
 from robonomics_game_warehouse.srv import Place as WarehousePlace, FillAll as WarehouseFillAll, EmptyAll as WarehouseEmptyAll
 from robonomics_game_transport.srv import ConveyorLoad, ConveyorDestination, ConveyorProductReady
 from robonomics_game_transport.msg import TransportAction, TransportFeedback, TransportResult
@@ -71,6 +72,12 @@ class Storage:
         self._jobs_proc_thread = threading.Thread(target=self._jobs_proc)
         self._jobs_proc_thread.daemon = True
         self._jobs_proc_thread.start()
+
+        def step(request):
+            rospy.loginfo('Storage running step %d...', request.step)
+            self.make_bids()
+            return StepResponse()
+        rospy.Service('~step', Step, step)
 
         rospy.wait_for_service('/market/gen_bids')
         self.bid = rospy.ServiceProxy('/market/gen_bids', BidsGenerator)
@@ -129,7 +136,7 @@ class Storage:
                 self.conveyor_destination('garbage')
                 self.conveyor_load(goal.address)
                 result.act = 'Place for %s is not available. Throwing to garbage.' % color
-                rospy.sleep(10) # wait until chunk throwed down, #TODO
+                rospy.sleep(10) # wait until chunk throwed down
                 job.set_succeeded(result)
         finally:
             self.finish()

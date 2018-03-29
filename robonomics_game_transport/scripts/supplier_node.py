@@ -15,6 +15,7 @@ from robonomics_liability.msg import Liability
 from robonomics_market.srv import BidsGenerator
 from robonomics_market.msg import Bid
 from robonomics_game_common.utils import SubscribersCounter
+from robonomics_game_common.srv import Step, StepResponse
 from robonomics_game_warehouse.srv import Order as WarehouseOrder
 from robonomics_game_warehouse.srv import FillAll as WarehouseFillAll
 from robonomics_game_warehouse.srv import EmptyAll as WarehouseEmptyAll
@@ -54,6 +55,12 @@ class Supplier:
 
         self.current_gh = None
 
+        def step(request):
+            rospy.loginfo('Supplier running step %d...', request.step)
+            self.make_bids()
+            return StepResponse()
+        rospy.Service('~step', Step, step)
+
         rospy.wait_for_service('/market/gen_bids')
         self.bid = rospy.ServiceProxy('/market/gen_bids', BidsGenerator)
         subscnt = SubscribersCounter()
@@ -61,6 +68,7 @@ class Supplier:
                                            subscriber_listener=subscnt, queue_size=128)
         while subscnt.num_peers < 1: # wait for market node
             rospy.sleep(0.3)
+
         self.make_bids()
         
         rospy.logdebug('Supplier node initialized')
