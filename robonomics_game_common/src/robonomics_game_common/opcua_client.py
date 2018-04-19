@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import rospy
 import ros_opcua_srvs.srv as ros_opcua
@@ -35,7 +35,6 @@ class OpcuaClient:
         Usage: write(ns + '/Settings/UnloadTime', 'uint16', unload_time)
         where ns='ns=<int>;s=/<VendorName>/<ObjectName>'
         """
-        rospy.logdebug('OPC UA Write: ' + str(nodeId))
         request = ros_opcua.WriteRequest()
         request.node.nodeId = nodeId
         request.data.type = data_type 
@@ -56,7 +55,6 @@ class OpcuaClient:
         Usage: read(ns + '/Enable')
         where ns='ns=<int>;s=/<VendorName>/<ObjectName>'
         """
-        rospy.logdebug('OPC UA read: ' + str(nodeId))
         request = ros_opcua.ReadRequest()
         request.node.nodeId = nodeId
         try:
@@ -77,6 +75,5 @@ class OpcuaClient:
             return None
 
     def read_data(self, nodeId):
-        rospy.logdebug('OPC UA read data: ' + str(nodeId))
         resp = self.read(nodeId)
         return self.get_data(resp)

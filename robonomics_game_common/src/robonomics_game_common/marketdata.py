@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from itertools import product
 from re import findall
 import httplib2

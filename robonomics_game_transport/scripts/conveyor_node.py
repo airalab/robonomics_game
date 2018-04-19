@@ -3,7 +3,7 @@
 import threading
 import rospy
 
-from opcua_client import OpcuaClient
+from robonomics_game_common.opcua_client import OpcuaClient
 from robonomics_game_transport.srv import ConveyorDestination, ConveyorDestinationResponse
 from robonomics_game_transport.srv import ConveyorLoad, ConveyorLoadResponse
 from robonomics_game_transport.srv import ConveyorProductReady, ConveyorProductReadyResponse

@@ -3,7 +3,7 @@
 import rospy
 from std_msgs.msg import String
 
-from opcua_client import OpcuaClient
+from robonomics_game_common.opcua_client import OpcuaClient
 
 
 def code_to_color(code):  # eastern rainbow order color code
