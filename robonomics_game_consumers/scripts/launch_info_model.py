@@ -1,0 +1,39 @@
+import datetime
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy import create_engine
+
+Base = declarative_base()
+
+class Launch(Base):
+    __tablename__ = 'Launch'
+    id = Column(Integer, primary_key=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    timestamp_start = Column(DateTime)
+    timestamp_finish = Column(DateTime)
+    block_number_start = Column(Integer, nullable=False)
+    block_number_finish = Column(Integer, nullable=False)
+
+session = sessionmaker()
+engine = create_engine('sqlite:///launch_info.db')
+session.configure(bind=engine)
+Base.metadata.create_all(engine)
+
+def stamp_launch(ts_start, ts_finish, bn_start, bn_finish):
+    s = session()
+    launch = Launch(timestamp_start=ts_start, timestamp_finish=ts_finish,
+                    block_number_start=bn_start, block_number_finish=block_number_finish)
+    s.add(launch)
+    s.commit()
+
+def get_last_launch_num():
+    s = session()
+    last_launch = s.query(Launch).order_by(Launch.id.desc()).first()
+    return last_launch.id
+
+def get_launch_blocks(launch_num):
+    s = session()
+    launch = s.query(Launch).filter(Launch.id == launch_num).one()
+    return {'launchBlockStart': launch.block_number_start,
+            'launchBlockFinish':launch.block_number_finish}
