@@ -1,12 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
+import threading
+from BaseHTTPServer import HTTPServer
+from BaseHTTPServer import BaseHTTPRequestHandler
+import json
+import requests
 import rospy
 from robonomics_market.msg import Ask
 from robonomics_market.srv import AsksGenerator
-from robonomics_game_common.srv import Step, StepResponse
+from robonomics_game_common.srv import Step, StepRequest, StepResponse
 from robonomics_game_common.marketdata import download_matched_asks
+from launch_info_model import stamp_launch, get_last_launch_num, get_launch_blocks
+from countdown_timer import CountdownTimer
 
+
+web3info = 'http://localhost:5002'
 
 objectives = {
         'blue'  : 'Qmbdan31EbgETmJU79shwQDHcMgNoRS6RMGDNJZNp8FLCS',
@@ -21,6 +31,41 @@ markets = {
         'purple': 'QmfM63vD3hpDHFSikoRFxucyEgKb7FERcXvLDKpGXnWWh8', # electronics
         'yellow': 'QmZky14ya2BbSNmjkrybxGdADTg7w7r4rKrVcotsz16HvP'  # automotive
         }
+
+
+class Server(HTTPServer):
+    def __init__(self, server_address, ReqestHandlerClass, user_instance):
+        HTTPServer.__init__(self, server_address, ReqestHandlerClass)
+        self.user = user_instance
+
+
+class RequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        def send_prefix():
+            self.send_response(200)
+            self.send_header("Content-type:", "text/html")
+            self.wfile.write("\n")
+        if self.path == '/':
+            send_prefix()
+            self.wfile.write("Robonomics Game Consumers node web service.")
+        elif self.path == '/blockNumber':
+            r = requests.get(web3info + '/blockNumber')
+            send_prefix()
+            self.wfile.write(r.content)
+        elif self.path == '/robonomics_game_launch':
+            launch_timer = self.server.user.launch()
+            send_prefix()
+            json.dump({'launchTimer': launch_timer}, self.wfile)
+        elif self.path == 'last_launch_num':
+            send_prefix()
+            last_launch_num = get_last_launch_num()
+            json.dump({'lastLaunchNumber': last_launch_num}, self.wfile)
+        elif '/launch_blocks/' in self.path:
+            launch_num = self.path.split('/')[2] # 2nd in path '/launch_blocks/30000'
+            launch_blocks = get_launch_blocks(launch_num)
+            json.dump(launch_blocks, self.wfile)
+        else:
+            self.send_response(404)
 
 
 class DataSpreadsheet:
@@ -46,27 +91,46 @@ class Consumer:
         rospy.wait_for_service( rospy.get_param('~market_node', '/market') + '/gen_asks' )
         self.signing_ask = rospy.Publisher('/market/signing/ask', Ask, queue_size=128)
 
-        ## @brief service for web ui
-        def step(request):
-            rospy.loginfo('Making asks...')
-            range_name = 'Day %s!A1:W500' % request.step
-            asks = download_matched_asks(self.data_spreadsheet.creds,
-                                         self.data_spreadsheet.uid,
-                                         range_name)
-            for ask in asks:
-                msg = Ask()
-                color = ask['Color']
-                msg.model = markets[color]
-                msg.objective = objectives[color]
-                msg.fee = ask['Fee']
-                msg.cost = ask['Price']
-                msg.count = int(ask['Quantity'])
-                for i in range(ask['Matches']):
-                    self.signing_ask.publish(msg)
-            return StepResponse()
-        rospy.Service('~step', Step, step)
+        rospy.Service('~step', Step, self.step)
 
-        rospy.logdebug('Condumer node started.')
+        self.threads = list()
+        # Server address officetlt.corp.aira.life:8088
+        self.server_address = rospy.get_param('server_host'), rospy.get_param('server_port')
+        self.server = Server(server_address, RequestHandler, self)
+        self.threads.append(threading.Thread(target=self.server.serve_forever))
+
+        self.launch_period_actual = rospy.get_param('launch_period_actual', 900)
+        self.launch_period = rospy.get_param('launch_period', 1200)
+        self.launch_period = self.launch_period if self.launch_period > self.launch_period_actual\
+                                                else 900
+        self.cd_timer = CountdownTimer()
+
+        self.last_launch_number = get_last_launch_num()
+
+        for t in self.threads:
+            t.daemon = True
+            t.start()
+        
+        rospy.logdebug('Consumer node started.')
+
+    def step(request):
+        ## @brief service for web ui
+        rospy.loginfo('Making asks...')
+        range_name = 'Day %s!A1:W500' % request.step
+        asks = download_matched_asks(self.data_spreadsheet.creds,
+                                        self.data_spreadsheet.uid,
+                                        range_name)
+        for ask in asks:
+            msg = Ask()
+            color = ask['Color']
+            msg.model = markets[color]
+            msg.objective = objectives[color]
+            msg.fee = ask['Fee']
+            msg.cost = ask['Price']
+            msg.count = int(ask['Quantity'])
+            for i in range(ask['Matches']):
+                self.signing_ask.publish(msg)
+        return StepResponse()
 
     def get_ask(self, step):
         ## @param step specifies a sheet of spreadsheet to get data
@@ -77,6 +141,24 @@ class Consumer:
 
     def spin(self):
         rospy.spin()
+    
+    def launch(self):
+        if self.cd_timer.remaining == 0:
+            self.last_launch_number = get_last_launch_num() + 1
+            self.step(StepRequest(step=self.last_launch_number))
+            self.cd_timer.start(period=self.launch_period)
+            currentBlock = lambda: json.loads(
+                                   requests.get(web3info+'/blockNumber').content)['blockNumber']
+            threading.Timer(self.launch_period_actual,
+                            stamp_launch,
+                            [datetime.datetime.utcnow(),
+                             datetime.datetime.utcnow,
+                             currentBlock(),
+                             currentBlock,
+                            ]).start()
+            return 0
+        else:
+            return self.cd_timer.remaining
 
 
 if __name__ == '__main__':

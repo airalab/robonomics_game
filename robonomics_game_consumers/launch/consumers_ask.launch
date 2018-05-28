@@ -1,7 +1,10 @@
 <launch>
-  <include file="$(find robonomics_market)/launch/market.launch" />
   <node pkg="robonomics_game_consumers" type="consumers_node" name="consumers" output="screen">
-    <param name="market_node" value="/market" />
+    <param name="market_node" value="/lighthouse/infochan" />
+    <param name="server_host" value="officetlt.corp.aira.life" />
+    <param name="server_port" value="8088" />
+    <param name="launch_period" value="1200" />
+    <param name="launch_period_actual" value="900" />
     <param name="account_secret" value="$(find robonomics_game_consumers)/scripts/owner_secret.json" />  <!-- Service account JSON file path -->
     <param name="spreadsheet_id" value="16OYBRS4Nt1V_Fkte0oy0rm4pfBrEu37_QeOoqjjAFmI" /> <!-- From link -->
   </node>
