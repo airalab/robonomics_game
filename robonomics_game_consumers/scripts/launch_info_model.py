@@ -1,4 +1,5 @@
 import datetime
+from collections import Callable
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -22,8 +23,12 @@ Base.metadata.create_all(engine)
 
 def stamp_launch(ts_start, ts_finish, bn_start, bn_finish):
     s = session()
-    launch = Launch(timestamp_start=ts_start, timestamp_finish=ts_finish,
-                    block_number_start=bn_start, block_number_finish=block_number_finish)
+    if isinstance(ts_finish, Callable) and isinstance(bn_finish, Callable):
+        launch = Launch(timestamp_start=ts_start, timestamp_finish=ts_finish(),
+                        block_number_start=bn_start, block_number_finish=block_number_finish())
+    else:
+        launch = Launch(timestamp_start=ts_start, timestamp_finish=ts_finish,
+                        block_number_start=bn_start, block_number_finish=block_number_finish)
     s.add(launch)
     s.commit()
 
@@ -35,5 +40,5 @@ def get_last_launch_num():
 def get_launch_blocks(launch_num):
     s = session()
     launch = s.query(Launch).filter(Launch.id == launch_num).one()
-    return {'launchBlockStart': launch.block_number_start,
-            'launchBlockFinish':launch.block_number_finish}
+    return {"launchBlockStart": launch.block_number_start,
+            "launchBlockFinish":launch.block_number_finish}
