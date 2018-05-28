@@ -40,5 +40,5 @@ def get_last_launch_num():
 def get_launch_blocks(launch_num):
     s = session()
     launch = s.query(Launch).filter(Launch.id == launch_num).one()
-    return {"launchBlockStart": launch.block_number_start,
-            "launchBlockFinish":launch.block_number_finish}
+    return {"lastLaunchStart": launch.block_number_start,
+            "lastLaunchFinish":launch.block_number_finish}
