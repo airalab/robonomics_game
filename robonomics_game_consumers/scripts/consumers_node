@@ -3,8 +3,8 @@
 
 import datetime
 import threading
-from BaseHTTPServer import HTTPServer
-from BaseHTTPServer import BaseHTTPRequestHandler
+from http.server import HTTPServer
+from http.server import BaseHTTPRequestHandler
 import json
 import requests
 import rospy
@@ -16,7 +16,7 @@ from launch_info_model import stamp_launch, get_last_launch_num, get_launch_bloc
 from countdown_timer import CountdownTimer
 
 
-web3info = 'http://localhost:5002'
+web3info = 'http://192.168.10.3:5002'
 
 objectives = {
         'blue'  : 'Qmbdan31EbgETmJU79shwQDHcMgNoRS6RMGDNJZNp8FLCS',
@@ -43,27 +43,29 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         def send_prefix():
             self.send_response(200)
-            self.send_header("Content-type:", "text/html")
-            self.wfile.write("\n")
+            self.send_header("Content-type:", "application/json")
+            self.end_headers()
         if self.path == '/':
             send_prefix()
-            self.wfile.write("Robonomics Game Consumers node web service.")
+            self.wfile.write(bytes('Robonomics Game Consumers node web service.', 'UTF-8'))
         elif self.path == '/blockNumber':
             r = requests.get(web3info + '/blockNumber')
             send_prefix()
             self.wfile.write(r.content)
         elif self.path == '/robonomics_game_launch':
-            launch_timer = self.server.user.launch()
             send_prefix()
-            json.dump({'launchTimer': launch_timer}, self.wfile)
-        elif self.path == 'last_launch_num':
+            launch_timer = self.server.user.launch()
+            self.wfile.write(bytes(json.dumps({'launchTimer': launch_timer}), 'UTF-8'))
+        elif self.path == '/last_launch_num':
             send_prefix()
             last_launch_num = get_last_launch_num()
-            json.dump({'lastLaunchNumber': last_launch_num}, self.wfile)
+            self.wfile.write(bytes(json.dumps({'lastLaunchNumber': last_launch_num}), 'UTF-8'))
         elif '/launch_blocks/' in self.path:
+            send_prefix()
             launch_num = self.path.split('/')[2] # 2nd in path '/launch_blocks/30000'
             launch_blocks = get_launch_blocks(launch_num)
-            json.dump(launch_blocks, self.wfile)
+            self.wfile.write(bytes(json.dumps({'lastLaunchStart': launch_blocks[0],
+                                               'lastLaunchFinish':launch_blocks[1]}), 'UTF-8'))
         else:
             self.send_response(404)
 
@@ -95,12 +97,12 @@ class Consumer:
 
         self.threads = list()
         # Server address officetlt.corp.aira.life:8088
-        self.server_address = rospy.get_param('server_host'), rospy.get_param('server_port')
-        self.server = Server(server_address, RequestHandler, self)
+        self.server_address = rospy.get_param('~server_host'), rospy.get_param('~server_port')
+        self.server = Server(self.server_address, RequestHandler, self)
         self.threads.append(threading.Thread(target=self.server.serve_forever))
 
-        self.launch_period_actual = rospy.get_param('launch_period_actual', 900)
-        self.launch_period = rospy.get_param('launch_period', 1200)
+        self.launch_period_actual = rospy.get_param('~launch_period_actual', 900)
+        self.launch_period = rospy.get_param('~launch_period', 1200)
         self.launch_period = self.launch_period if self.launch_period > self.launch_period_actual\
                                                 else 900
         self.cd_timer = CountdownTimer()
@@ -113,7 +115,7 @@ class Consumer:
         
         rospy.logdebug('Consumer node started.')
 
-    def step(request):
+    def step(self, request):
         ## @brief service for web ui
         rospy.loginfo('Making asks...')
         range_name = 'Day %s!A1:W500' % request.step

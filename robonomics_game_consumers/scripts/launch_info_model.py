@@ -34,11 +34,15 @@ def stamp_launch(ts_start, ts_finish, bn_start, bn_finish):
 
 def get_last_launch_num():
     s = session()
-    last_launch = s.query(Launch).order_by(Launch.id.desc()).first()
-    return last_launch.id
+    last_launch_num = 0
+    if s.query(Launch).first(): # table not empty
+        last_launch = s.query(Launch).order_by(Launch.id.desc()).first()
+        last_launch_num = last_launch.id
+    return last_launch_num
 
 def get_launch_blocks(launch_num):
     s = session()
-    launch = s.query(Launch).filter(Launch.id == launch_num).one()
-    return {"lastLaunchStart": launch.block_number_start,
-            "lastLaunchFinish":launch.block_number_finish}
+    launch = Launch(block_number_start=0, block_number_finish=0)
+    if s.query(Launch).filter(Launch.id == launch_num).count(): # if launch exists
+        launch = s.query(Launch).filter(Launch.id == launch_num).one()
+    return [launch.block_number_start, launch.block_number_finish]

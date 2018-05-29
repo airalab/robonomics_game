@@ -1,7 +1,8 @@
 <launch>
+  <include file="$(find robonomics_market)/launch/market.launch" />
   <node pkg="robonomics_game_consumers" type="consumers_node" name="consumers" output="screen">
-    <param name="market_node" value="/lighthouse/infochan" />
-    <param name="server_host" value="officetlt.corp.aira.life" />
+    <param name="market_node" value="/market" />
+    <param name="server_host" value="192.168.10.16" />
     <param name="server_port" value="8088" />
     <param name="launch_period" value="1200" />
     <param name="launch_period_actual" value="900" />
