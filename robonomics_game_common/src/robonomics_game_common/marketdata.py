@@ -12,11 +12,29 @@ from oauth2client.service_account import ServiceAccountCredentials
 ## @brief Download one sheet from Google Sheets with given credentials
 def download_sheet(creds_file, spreadsheet_id, range_name, render_option='FORMULA'):
     def get_values(service, spreadsheet_id, range_name):
-        result = service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueRenderOption=render_option # FORMATTED_VALUE, UNFORMATTED_VALUE, FORMULA
-            ).execute()
+        try:
+            result = service.spreadsheets().values().get(
+                spreadsheetId=spreadsheet_id,
+                range=range_name,
+                valueRenderOption=render_option # FORMATTED_VALUE, UNFORMATTED_VALUE, FORMULA
+                ).execute()
+        except apiclient.errors.HttpError: # no such sheet
+            sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+            sheets = sheet_metadata.get('sheets', '')
+            period_prefix, period_num = range_name.split('!')[0].rsplit(' ', 1)
+            period_num = int(period_num)
+            titles = list()
+            for s in sheets:
+                t = s.get("properties", {}).get("title", "")
+                if period_prefix in t:
+                    titles.append(t)
+            avail_period_num = len(titles)
+            range_name = period_prefix + ' ' + str(period_num % avail_period_num) # ring periods
+            result = service.spreadsheets().values().get(
+                spreadsheetId=spreadsheet_id,
+                range=range_name,
+                valueRenderOption=render_option # FORMATTED_VALUE, UNFORMATTED_VALUE, FORMULA
+                ).execute()            
         return result.get('values')
 
     def get_service(creds_file):
