@@ -130,3 +130,4 @@ class Supply(SupplyChain):
         rospy.sleep(5)
         rospy.logdebug('Order complete')
         self.finish()
+        self.make_bids() # publish offer for next launch

@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import json
+import socket
+import requests
 import rospy
 from std_msgs.msg import String
 from robonomics_game_common.marketdata import bids_params 
@@ -69,7 +72,7 @@ class SupplyChain:
 
     def make_bids(self, step=None):
         rospy.loginfo('Current market %s, making bids...', self.current_market)
-        range_name = 'Day %s!A1:W500' % (step or self.get_current_step())
+        range_name = 'Day %s!A1:W500' % (step or self.get_current_launch_num())
 
         bids = download_matched_bids(self.data_spreadsheet.creds,
                                      self.data_spreadsheet.uid,
@@ -83,8 +86,6 @@ class SupplyChain:
                 msg.count = int(bid['Quantity'])
                 self.signing_bid.publish(msg)
 
-    def get_current_step(self):
-        first_day = datetime.datetime.strptime(rospy.get_param('~first_day_game'),
-                                               '%d-%m-%Y').date()
-        today = datetime.date.today()
-        return (today - first_day).days
+    def get_current_launch_num(self):
+        host = 'http://' + socket.gethostbyname('officetlt.corp.aira.life') + ':8088'
+        return json.loads(requests.get(host + '/last_launch_num').content)['lastLaunchNumber']
