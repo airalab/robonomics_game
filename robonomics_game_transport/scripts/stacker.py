@@ -9,7 +9,7 @@ import threading
 import rospy
 import actionlib
 
-from robonomics_game.common.opcua_client import OpcuaClient
+from robonomics_game_common.opcua_client import OpcuaClient
 from robonomics_game_transport.msg import StackerAction, StackerFeedback, StackerResult
 
 

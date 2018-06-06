@@ -25,7 +25,7 @@ def stamp_launch(ts_start, ts_finish, bn_start, bn_finish):
     s = session()
     if isinstance(ts_finish, Callable) and isinstance(bn_finish, Callable):
         launch = Launch(timestamp_start=ts_start, timestamp_finish=ts_finish(),
-                        block_number_start=bn_start, block_number_finish=block_number_finish())
+                        block_number_start=bn_start, block_number_finish=bn_finish())
     else:
         launch = Launch(timestamp_start=ts_start, timestamp_finish=ts_finish,
                         block_number_start=bn_start, block_number_finish=block_number_finish)

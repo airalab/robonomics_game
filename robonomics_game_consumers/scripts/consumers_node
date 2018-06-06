@@ -43,6 +43,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         def send_prefix():
             self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-type:", "application/json")
             self.end_headers()
         if self.path == '/':
@@ -146,7 +147,7 @@ class Consumer:
     
     def launch(self):
         if self.cd_timer.remaining == 0:
-            self.last_launch_number = get_last_launch_num() + 1
+            self.last_launch_number = get_last_launch_num()
             self.step(StepRequest(step=self.last_launch_number))
             self.cd_timer.start(period=self.launch_period)
             currentBlock = lambda: json.loads(

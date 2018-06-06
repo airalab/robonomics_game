@@ -28,6 +28,7 @@ class DataSpreadsheet:
 
 class SupplyChain:
     current_market = ""
+    last_launch_num = None
 
     def __init__(self):
         rospy.init_node('supply_chain', anonymous=True, log_level=rospy.DEBUG)
@@ -72,7 +73,11 @@ class SupplyChain:
 
     def make_bids(self, step=None):
         rospy.loginfo('Current market %s, making bids...', self.current_market)
-        range_name = 'Day %s!A1:W500' % (step or self.get_current_launch_num())
+        # Allow to publish a bid for next period while current launch
+        cur_launch = self.get_current_launch_num()
+        step = step or cur_launch if cur_launch != self.last_launch_num else cur_launch + 1
+        self.last_launch_num = step
+        range_name = 'Day %s!A1:W500' % step
 
         bids = download_matched_bids(self.data_spreadsheet.creds,
                                      self.data_spreadsheet.uid,
@@ -87,5 +92,5 @@ class SupplyChain:
                 self.signing_bid.publish(msg)
 
     def get_current_launch_num(self):
-        host = 'http://' + socket.gethostbyname('officetlt.corp.aira.life') + ':8088'
+        host = 'http://' + '192.168.10.16' + ':8088'
         return json.loads(requests.get(host + '/last_launch_num').content)['lastLaunchNumber']
